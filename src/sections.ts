@@ -8,9 +8,7 @@ function isPathless(route: ScannedRoute): boolean {
 }
 
 function normalizePath(urlPath: string): string {
-  const trimmed = urlPath.replace(/\/+$/, "");
-
-  return trimmed === "" ? "" : trimmed;
+  return urlPath.replace(/\/+$/, "");
 }
 
 function firstSegment(fullPath: string): string | undefined {
@@ -88,13 +86,6 @@ export function selectSection(
 
   for (const route of urlRoutes(routes)) {
     if (prefixes.some((prefix) => matchesPrefix(route, prefix)) || isCommon(route, commonRoutes)) {
-      selectedIds.add(route.routeId);
-      selected.add(route.filePath);
-    }
-  }
-
-  for (const route of routes) {
-    if (selectedIds.has(route.routeId)) {
       selected.add(route.filePath);
     }
   }
@@ -105,6 +96,18 @@ export function selectSection(
     while (parent !== null && !selected.has(parent)) {
       selected.add(parent);
       parent = byFilePath.get(parent)?.parentFilePath ?? null;
+    }
+  }
+
+  for (const route of routes) {
+    if (selected.has(route.filePath)) {
+      selectedIds.add(route.routeId);
+    }
+  }
+
+  for (const route of routes) {
+    if (selectedIds.has(route.routeId)) {
+      selected.add(route.filePath);
     }
   }
 

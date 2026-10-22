@@ -74,6 +74,12 @@ function validateSections(raw: Record<string, unknown>, configFile: string): voi
           `Section "${name}" in ${fileName} has prefix "${prefix}": prefixes must start with "/".`,
         );
       }
+
+      if (prefix.replace(/\/+$/, "") === "") {
+        throw new ConfigError(
+          `Section "${name}" in ${fileName} has prefix "${prefix}", which would match every route. Use specific prefixes such as "/billing".`,
+        );
+      }
     }
   }
 }
