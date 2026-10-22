@@ -1,0 +1,4 @@
+{
+  "routesDirectory": "./src/routes",
+  "virtualRouteConfig": "./src/routes.ts"
+}
