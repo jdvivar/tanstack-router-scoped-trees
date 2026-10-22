@@ -99,6 +99,20 @@ describe("selectSection", () => {
   });
 });
 
+describe("selectSection ancestor companions", () => {
+  it("includes the companion of a selected route's layout", () => {
+    const tree = [
+      route("a/route.tsx", "/a", null, "layout", "/a"),
+      route("a/route.lazy.tsx", "/a", null, "lazy", "/a"),
+      route("a/b.tsx", "/a/b", "a/route.tsx"),
+    ];
+
+    expect(selectSection(tree, ["/a/b"], [])).toEqual(
+      new Set(["a/b.tsx", "a/route.tsx", "a/route.lazy.tsx"]),
+    );
+  });
+});
+
 describe("findUncovered", () => {
   it("returns routes in no section, ignoring root index and pathless layouts", () => {
     const uncovered = findUncovered(routes, config).map((r) => r.filePath);
