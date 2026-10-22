@@ -116,6 +116,36 @@ async function existingGeneratedFiles(outputDirectory: string): Promise<string[]
   }
 }
 
+function firstMissingDirectory(directory: string): string | undefined {
+  let missing: string | undefined;
+  let current = directory;
+
+  while (!existsSync(current)) {
+    missing = current;
+    current = path.dirname(current);
+  }
+
+  return missing;
+}
+
+async function removeEmptyDirectories(from: string, upTo: string | undefined): Promise<void> {
+  if (upTo === undefined) {
+    return;
+  }
+
+  let current = from;
+
+  while (isInside(upTo, current)) {
+    try {
+      await rmdir(current);
+    } catch {
+      return;
+    }
+
+    current = path.dirname(current);
+  }
+}
+
 async function renderTrees(
   root: string,
   routerConfig: Config,
@@ -127,7 +157,7 @@ async function renderTrees(
   const rootFile = await findRootFile(routerConfig.routesDirectory);
   const declaration = declarationFor(await frameworkPackage(root));
   const tmpDir = await mkdtemp(path.join(tmpdir(), "scoped-trees-generator-"));
-  const outputDirectoryExisted = existsSync(outputDirectory);
+  const firstCreated = firstMissingDirectory(outputDirectory);
   const files = new Map<string, string>();
 
   try {
@@ -151,9 +181,7 @@ async function renderTrees(
   } finally {
     await rm(tmpDir, { recursive: true, force: true });
 
-    if (!outputDirectoryExisted) {
-      await rmdir(outputDirectory).catch(() => undefined);
-    }
+    await removeEmptyDirectories(outputDirectory, firstCreated);
   }
 
   return files;

@@ -36,6 +36,18 @@ function relativeId(scanned: ScannedRoute, parent: ScannedRoute | undefined): st
   return scanned.routeId.slice(parentId.length);
 }
 
+function pathlessLayout(
+  path: string,
+  file: string,
+  children: VirtualRouteNode[],
+): VirtualRouteNode {
+  const separator = path.lastIndexOf("/");
+  const pathPrefix = path.slice(0, separator);
+  const node = layout(path.slice(separator + 1), file, children);
+
+  return pathPrefix === "" ? node : route(pathPrefix, [node]);
+}
+
 function toVirtualNode(
   scanned: ScannedRoute,
   parent: ScannedRoute | undefined,
@@ -48,7 +60,7 @@ function toVirtualNode(
   }
 
   if (scanned.fsRouteType === PATHLESS_LAYOUT) {
-    return layout(path.slice(1), scanned.filePath, children);
+    return pathlessLayout(path, scanned.filePath, children);
   }
 
   return children.length === 0
