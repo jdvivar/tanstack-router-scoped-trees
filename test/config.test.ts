@@ -86,6 +86,14 @@ describe("validateConfig", () => {
     expect(run).toThrow('"billing"');
     expect(run).toThrow('start with "/"');
   });
+
+  it('rejects "/" as a section prefix', () => {
+    const run = () => validateConfig({ sections: { everything: ["/"] } }, file);
+
+    expect(run).toThrow(ConfigError);
+    expect(run).toThrow('"everything"');
+    expect(run).toThrow("specific prefixes");
+  });
 });
 
 describe("writeInitialConfig", () => {
