@@ -103,6 +103,30 @@ describe("createSectionRouteConfig", () => {
       ]),
     );
   });
+
+  it("keeps the URL prefix of a pathless layout under a directory without a route file", async () => {
+    const root = fixturePath("layouts");
+    const routerConfig = resolveRouterConfig(root);
+    const { routes } = await scanRoutes(routerConfig, root);
+    const selected = selectSection(routes, ["/admin"], []);
+    const virtualRouteConfig = createSectionRouteConfig(routes, selected, "__root.tsx");
+
+    expect(virtualRouteConfig).toEqual(
+      rootRoute("__root.tsx", [
+        route("/admin", [
+          layout("_guard", "admin/_guard.tsx", [route("/users", "admin/_guard/users.tsx")]),
+        ]),
+      ]),
+    );
+
+    const scoped = await scanRoutes({ ...routerConfig, virtualRouteConfig }, root);
+
+    expect(scoped.routes).toEqual(routes.filter((scanned) => selected.has(scanned.filePath)));
+    expect(scoped.routes.map(({ routeId, fullPath }) => [routeId, fullPath])).toEqual([
+      ["/admin/_guard", "/admin"],
+      ["/admin/_guard/users", "/admin/users"],
+    ]);
+  });
 });
 
 describe("generateScopedTrees", () => {
@@ -179,6 +203,7 @@ describe("generateScopedTrees", () => {
 
   it("check mode writes nothing when no trees exist yet", async () => {
     const root = await copy("basic");
+    const before = (await readdir(root, { recursive: true })).sort();
 
     const result = await generateScopedTrees({
       root,
@@ -187,7 +212,8 @@ describe("generateScopedTrees", () => {
     });
 
     expect(result.changed).toContain("billing.gen.js");
-    await expect(stat(path.join(root, OUTPUT_DIRECTORY))).rejects.toThrow();
+    await expect(stat(path.join(root, "src/test"))).rejects.toThrow();
+    expect((await readdir(root, { recursive: true })).sort()).toEqual(before);
   });
 
   it("prunes the tree of a removed section", async () => {
