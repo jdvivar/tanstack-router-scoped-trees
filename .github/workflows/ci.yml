@@ -42,9 +42,15 @@ jobs:
         with:
           node-version: 24
           cache: npm
-      - run: npm ci
-      - run: npm install --no-save @tanstack/router-generator@${{ matrix.generator }}
-      - run: npm ls @tanstack/router-generator
+      # Root only: the examples' router-plugin pins its own generator, which the swap below would flag as a second copy.
+      - run: npm ci --workspaces=false --include-workspace-root
+      - run: npm install --no-save --workspaces=false --include-workspace-root @tanstack/router-generator@${{ matrix.generator }}
+      - name: Confirm the generator under test
+        run: |
+          installed=$(node -p "require('@tanstack/router-generator/package.json').version")
+          expected=$(npm view @tanstack/router-generator@${{ matrix.generator }} version)
+          echo "router-generator installed $installed, expected $expected"
+          test "$installed" = "$expected"
       - run: npx vitest run test/tanstack-contract.test.ts
       - run: npm test
 
