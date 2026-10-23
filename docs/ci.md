@@ -42,16 +42,12 @@ Run: npx tanstack-router-scoped-trees generate
 
 When everything is fine it prints `Scoped route trees are up to date.`
 
-## Why both checks
+## Why a parity test as well
 
-They answer different questions.
+`generate --check` covers everything: committed files that are out of date, routes in no section, and the parity comparison. It is the one check that compares committed files with a fresh generation.
 
-The parity test never reads your committed trees. It builds each section tree in memory from your route files, then compares it with the full crawl and with what TanStack generates from only that section's files. So it validates the section building and your config, not the files in the repo.
+The parity comparison itself never reads your committed trees. It builds each section tree in memory from your route files, then compares it with the full crawl and with what TanStack generates from only that section's files.
 
-`generate --check` is the only check that compares the committed files with a fresh generation. It catches a tree nobody refreshed after a route was added.
-
-Together they cover both: the parity test says the generation logic is right, and `generate --check` says the committed output matches it.
-
-In the other direction, `generate --check` cannot tell you that a scoped tree differs from what TanStack would build for the same files. The parity test does that.
+The separate parity test runs that same in-memory comparison inside your test suite. Use it when you want a failing test in the normal test run, or when your routing options are inline and the CLI cannot see them (pass them as `checkScopedRouteTrees({ router })`).
 
 Run `generate` locally after adding or moving a route, and commit the result.
