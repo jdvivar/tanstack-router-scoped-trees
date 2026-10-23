@@ -1,4 +1,4 @@
-import { chmod, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { chmod, cp, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import type { ResolvedScopedTreesConfig } from "../src/config.js";
@@ -302,5 +302,23 @@ describe("generateFullTree", () => {
     await expect(stat(path.join(root, ".tanstack"))).rejects.toThrow();
     await expect(stat(path.join(process.cwd(), ".tanstack"))).rejects.toThrow();
     expect(await snapshot(routesDirectory)).toEqual(before);
+  });
+});
+
+describe("generateScopedTrees router passthrough", () => {
+  it("applies inline router options", async () => {
+    const root = await copy("basic");
+
+    await cp(path.join(root, "src/routes"), path.join(root, "app/pages"), { recursive: true });
+    await rm(path.join(root, "src"), { recursive: true });
+
+    const result = await generateScopedTrees({
+      root,
+      config: configFor(root, basicSections),
+      mode: "write",
+      router: { routesDirectory: "app/pages" },
+    });
+
+    expect(result.sections).toEqual(["billing", "settings", "about"]);
   });
 });
