@@ -108,6 +108,17 @@ describe("scanRoutes", () => {
     );
   });
 
+  it("attaches lazy and other companion files to the route they belong to", async () => {
+    const { routes } = await scanFixture(fixturePath("naming-rules"));
+    const companionsOf = (filePath: string) =>
+      routes.find((route) => route.filePath === filePath)?.companionFilePaths;
+
+    expect(companionsOf("reports.tsx")).toEqual(["reports.lazy.tsx"]);
+    expect(companionsOf("stats.tsx")).toEqual(["stats.component.tsx"]);
+    expect(companionsOf("posts.tsx")).toEqual([]);
+    expect(routes.some((route) => route.filePath === "reports.lazy.tsx")).toBe(false);
+  });
+
   it("returns the generated full tree", async () => {
     const { generatedTree } = await scanFixture(fixturePath("basic"));
 

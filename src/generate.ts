@@ -1,13 +1,12 @@
 import { mkdir, mkdtemp, readdir, readFile, rm, rmdir, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
-import { tmpdir } from "node:os";
 import path from "node:path";
 import { Generator, type Config } from "@tanstack/router-generator";
 import { ConfigError, type ResolvedScopedTreesConfig } from "./config.js";
-import { inMemoryOutputFs, readOnlyRoutesFs } from "./generator-fs.js";
+import { readOnlyRoutesFs } from "./generator-fs.js";
 import { resolveRouterConfig } from "./router-config.js";
-import { scanRoutes, type ScannedRoute } from "./scan.js";
-import { createSectionRouteConfig } from "./section-route-config.js";
+import { crawlRoutes, type RouteCrawl, type ScannedRoute } from "./scan.js";
+import { buildSectionTree } from "./section-tree.js";
 import {
   applyAutoSections,
   assertPrefixesMatch,
@@ -25,7 +24,7 @@ export type GenerateResult = {
 
 type GenerateMode = "write" | "check";
 
-const ROOT_ROUTE_NAME = "__root";
+const SCOPED_TREE_PLACEHOLDER = "scoped-route-tree.gen.js";
 const GENERATED_FILE_PATTERN = /\.gen\.(js|d\.ts)$/;
 
 export class UncoveredRoutesError extends Error {
@@ -38,7 +37,7 @@ export class UncoveredRoutesError extends Error {
   }
 }
 
-function appRouterConfig(root: string, config: ResolvedScopedTreesConfig): Config {
+export function appRouterConfig(root: string, config: ResolvedScopedTreesConfig): Config {
   const resolveAgainstRoot = (value: string | undefined) =>
     value === undefined ? undefined : path.resolve(root, value);
 
@@ -52,19 +51,6 @@ function isInside(directory: string, candidate: string): boolean {
   const relative = path.relative(directory, candidate);
 
   return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
-}
-
-async function findRootFile(routesDirectory: string): Promise<string> {
-  const entries = await readdir(routesDirectory, { withFileTypes: true });
-  const rootFile = entries.find(
-    (entry) => entry.isFile() && path.parse(entry.name).name === ROOT_ROUTE_NAME,
-  );
-
-  if (rootFile === undefined) {
-    throw new Error(`No ${ROOT_ROUTE_NAME} route file found in ${routesDirectory}.`);
-  }
-
-  return rootFile.name;
 }
 
 async function frameworkPackage(root: string): Promise<string> {
@@ -82,22 +68,6 @@ async function frameworkPackage(root: string): Promise<string> {
 
 function declarationFor(framework: string): string {
   return `import type { AnyRoute } from "${framework}";\nexport declare const routeTree: AnyRoute;\n`;
-}
-
-async function generateInMemory(config: Config, root: string): Promise<string> {
-  const { fs, output } = inMemoryOutputFs(config.routesDirectory, config.generatedRouteTree);
-
-  await new Generator({ config, root, fs }).run();
-
-  const tree = output();
-
-  if (tree === undefined) {
-    throw new Error(
-      `TanStack's generator produced no route tree for ${config.generatedRouteTree}.`,
-    );
-  }
-
-  return tree;
 }
 
 async function readIfExists(filePath: string): Promise<string | undefined> {
@@ -146,42 +116,42 @@ async function removeEmptyDirectories(from: string, upTo: string | undefined): P
   }
 }
 
-async function renderTrees(
+async function crawlForOutput(
   root: string,
   routerConfig: Config,
-  sections: Record<string, string[]>,
-  routes: ScannedRoute[],
-  commonRoutes: string[],
   outputDirectory: string,
-): Promise<Map<string, string>> {
-  const rootFile = await findRootFile(routerConfig.routesDirectory);
-  const declaration = declarationFor(await frameworkPackage(root));
-  const tmpDir = await mkdtemp(path.join(tmpdir(), "scoped-trees-generator-"));
+): Promise<RouteCrawl> {
   const firstCreated = firstMissingDirectory(outputDirectory);
-  const files = new Map<string, string>();
 
   try {
-    for (const [name, prefixes] of Object.entries(sections)) {
-      const selected = selectSection(routes, prefixes, commonRoutes);
-      const tree = await generateInMemory(
-        {
-          ...routerConfig,
-          virtualRouteConfig: createSectionRouteConfig(routes, selected, rootFile),
-          disableTypes: true,
-          generatedRouteTree: path.join(outputDirectory, `${name}.gen.js`),
-          disableLogging: true,
-          tmpDir,
-        },
-        root,
-      );
-
-      files.set(`${name}.gen.js`, tree);
-      files.set(`${name}.gen.d.ts`, declaration);
-    }
+    return await crawlRoutes(
+      {
+        ...routerConfig,
+        disableTypes: true,
+        generatedRouteTree: path.join(outputDirectory, SCOPED_TREE_PLACEHOLDER),
+      },
+      root,
+    );
   } finally {
-    await rm(tmpDir, { recursive: true, force: true });
-
     await removeEmptyDirectories(outputDirectory, firstCreated);
+  }
+}
+
+async function renderTrees(
+  root: string,
+  crawl: RouteCrawl,
+  sections: Record<string, string[]>,
+  commonRoutes: string[],
+): Promise<Map<string, string>> {
+  const declaration = declarationFor(await frameworkPackage(root));
+  const files = new Map<string, string>();
+
+  for (const [name, prefixes] of Object.entries(sections)) {
+    const selected = selectSection(crawl.routes, prefixes, commonRoutes);
+    const tree = await buildSectionTree(crawl, selected);
+
+    files.set(`${name}.gen.js`, tree.content);
+    files.set(`${name}.gen.d.ts`, declaration);
   }
 
   return files;
@@ -254,7 +224,8 @@ export async function generateScopedTrees(opts: {
     );
   }
 
-  const { routes } = await scanRoutes(routerConfig, root);
+  const crawl = await crawlForOutput(root, routerConfig, outputDirectory);
+  const { routes } = crawl;
   const uncovered = findUncovered(routes, opts.config);
 
   if (uncovered.length > 0 && !opts.config.autoSectionUncovered) {
@@ -265,14 +236,7 @@ export async function generateScopedTrees(opts: {
 
   assertPrefixesMatch(routes, { sections });
 
-  const files = await renderTrees(
-    root,
-    routerConfig,
-    sections,
-    routes,
-    opts.config.commonRoutes,
-    outputDirectory,
-  );
+  const files = await renderTrees(root, crawl, sections, opts.config.commonRoutes);
   const changed = await changedFiles(outputDirectory, files);
   const stale = (await existingGeneratedFiles(outputDirectory))
     .filter((name) => !files.has(name))

@@ -17,7 +17,15 @@ function route(
   fsRouteType = "static",
   routeId = fullPath,
 ): ScannedRoute {
-  return { filePath, routeId, fullPath, parentFilePath, fsRouteType };
+  return {
+    filePath,
+    routeId,
+    fullPath,
+    parentFilePath,
+    fsRouteType,
+    cleanedPath: fullPath,
+    companionFilePaths: [],
+  };
 }
 
 const routes: ScannedRoute[] = [
