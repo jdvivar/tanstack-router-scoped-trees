@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { expect, it } from "vitest";
 import { routeTree as aRouteTree } from "./route-trees/a.gen.js";
 
-it("renders /a/b/c from a flat dots (a.b.c.tsx)", async () => {
+it("renders /a/b/c for the rule: flat dots (a.b.c.tsx)", async () => {
   const router = createRouter({
     routeTree: aRouteTree,
     history: createMemoryHistory({ initialEntries: ["/a/b/c"] }),
