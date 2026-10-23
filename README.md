@@ -93,13 +93,13 @@ npx tanstack-router-scoped-trees generate --check
 
 1. `init` writes `scoped-route-trees.config.ts` from the sections it detects.
 2. `generate` refreshes the full tree and every scoped tree. It also creates the config if it is missing.
-3. `generate --check` writes nothing and exits 1 if a tree is stale, a route is in no section, or parity fails. Use it in CI. See [CI](docs/ci.md).
+3. `generate --check` writes nothing and exits 1 if a tree is stale, a route is in no section, or parity fails. It is the check that compares committed trees with a fresh generation. Use it in CI. See [CI](docs/ci.md).
 
 All commands take `--root <dir>`. The CLI reads routing options from `tsr.config.json` only.
 
 ## Parity test
 
-Add one test that checks every scoped tree against what TanStack itself generates:
+Add one test that builds every section tree in memory and checks it against what TanStack itself generates from the same files. It does not read your committed trees:
 
 ```ts
 import { checkScopedRouteTrees, formatParityDifferences } from "tanstack-router-scoped-trees";
@@ -114,6 +114,7 @@ it("keeps every scoped tree in parity with the full route tree", async () => {
 
 1. Apps that set `virtualRouteConfig` (the tool stops with a message).
 2. Code-based routing. Only file-based routes.
+3. `"/"` as a section prefix. It would match every route, so it is rejected.
 
 ## Guides
 
