@@ -2,17 +2,17 @@
 
 ## Reading parity output
 
-Each line starts with the section name. Parity re-derives each section from only its own files through TanStack and compares the result with the scoped tree, byte for byte. It costs one extra TanStack crawl per section.
+Each line starts with the section name. Parity re-derives each section from only its own files through TanStack and compares the result with the section tree built in memory from your route files, byte for byte. It never reads the committed trees; use `generate --check` for that. It costs one extra TanStack crawl per section.
 
-| Line                                                                    | Meaning                                                             |
-| ----------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| `reports.tsx (/reports) is in no section`                               | Add a prefix for the route. See [sections](sections.md).            |
-| `billing: <file> is in the section but missing from the scoped tree`    | The tree is stale. Run `generate`.                                  |
-| `billing: <file> is in the scoped tree but not in the section`          | The tree is stale or the config changed. Run `generate`.            |
-| `billing: <file> fullPath: expected "/a", got "/b"`                     | A route resolves differently in the tree.                           |
-| `billing: the scoped tree differs from the tree TanStack generates ...` | The file text differs from what TanStack builds for the same files. |
+| Line                                                                    | Meaning                                                                                 |
+| ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `reports.tsx (/reports) is in no section`                               | Add a prefix for the route. See [sections](sections.md).                                |
+| `billing: <file> is in the section but missing from the scoped tree`    | The section builder dropped a route it should keep. Not fixed by `generate`; report it. |
+| `billing: <file> is in the scoped tree but not in the section`          | The section builder kept a route it should not. Not fixed by `generate`; report it.     |
+| `billing: <file> fullPath: expected "/a", got "/b"`                     | A route resolves differently in the tree.                                               |
+| `billing: the scoped tree differs from the tree TanStack generates ...` | The file text differs from what TanStack builds for the same files.                     |
 
-When regenerating does not clear a line, the CLI says so and asks you to report it at the [issue tracker](https://github.com/jdvivar/tanstack-router-scoped-trees/issues). Include the route files involved if you can.
+Only the "is in no section" line is fixed by editing your config. Every other line means the section tree differs from what TanStack builds, and regenerating will not clear it. Report it at the [issue tracker](https://github.com/jdvivar/tanstack-router-scoped-trees/issues). Include the route files involved if you can.
 
 Parity runs with relative imports internally. If your app sets `importRoutesUsingAbsolutePaths`, the import strings are not byte-checked.
 
