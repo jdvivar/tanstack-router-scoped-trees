@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { cac } from "cac";
 import { CONFIG_FILE_NAME, ConfigError, loadConfig } from "./config.js";
@@ -139,6 +140,12 @@ function guarded<Args extends unknown[]>(action: (...args: Args) => Promise<void
   };
 }
 
+function packageVersion(): string {
+  const manifest = readFileSync(new URL("../package.json", import.meta.url), "utf8");
+
+  return (JSON.parse(manifest) as { version: string }).version;
+}
+
 const cli = cac(CLI_NAME);
 
 cli
@@ -153,11 +160,12 @@ cli
   .action(guarded(generate));
 
 cli.help();
+cli.version(packageVersion());
 
 async function main(): Promise<void> {
   cli.parse(process.argv, { run: false });
 
-  if (cli.options.help === true) {
+  if (cli.options.help === true || cli.options.version === true) {
     return;
   }
 
