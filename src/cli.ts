@@ -2,6 +2,7 @@
 import path from "node:path";
 import { cac } from "cac";
 import { CONFIG_FILE_NAME, ConfigError, loadConfig, writeInitialConfig } from "./config.js";
+import { CLI_NAME, formatCheckReport, hasFindings, type CheckFindings } from "./cli-report.js";
 import { ensureConfig } from "./ensure-config.js";
 import {
   appRouterConfig,
@@ -10,13 +11,10 @@ import {
   isFullTreeStale,
   UncoveredRoutesError,
 } from "./generate.js";
-import { findParityDifferences, formatParityDifferences } from "./parity.js";
+import { findParityDifferences } from "./parity.js";
 import { resolveRouterConfig } from "./router-config.js";
 import { scanRoutes } from "./scan.js";
 import { detectSections } from "./sections.js";
-
-const CLI_NAME = "tanstack-router-scoped-trees";
-const FIX_HINT = `Run: npx ${CLI_NAME} generate`;
 
 type CommandOptions = { root?: string; check?: boolean };
 
@@ -53,62 +51,58 @@ async function write(root: string): Promise<void> {
   );
 }
 
-async function collectProblems(root: string): Promise<string[]> {
+async function collectFindings(root: string): Promise<CheckFindings> {
   const config = await loadConfig(root);
 
   if (config === undefined) {
     throw new ConfigError(
-      `No ${CONFIG_FILE_NAME} found in ${root}. Run "${CLI_NAME} init" to create one.`,
+      `No ${CONFIG_FILE_NAME} found in ${root}. Run "npx ${CLI_NAME} init" to create one.`,
     );
   }
 
-  const problems: string[] = [];
+  const findings: CheckFindings = {
+    root,
+    configFile: config.configFile,
+    outputDirectory: path.resolve(root, config.outputDirectory),
+    changed: [],
+    stale: [],
+    parity: [],
+  };
 
   if (await isFullTreeStale({ root, config })) {
-    const fullTree = appRouterConfig(root, config).generatedRouteTree;
-
-    problems.push(`The full route tree is out of date: ${path.relative(root, fullTree)}`);
+    findings.fullTree = path.relative(root, appRouterConfig(root, config).generatedRouteTree);
   }
 
   try {
     const result = await generateScopedTrees({ root, config, mode: "check" });
 
-    for (const name of result.changed) {
-      problems.push(`Scoped tree is out of date: ${name}`);
-    }
-
-    for (const name of result.stale) {
-      problems.push(`Scoped tree has no section any more: ${name}`);
-    }
+    findings.changed = result.changed;
+    findings.stale = result.stale;
   } catch (error) {
     if (!(error instanceof UncoveredRoutesError)) {
       throw error;
     }
 
-    problems.push(error.message);
+    findings.uncoveredMessage = error.message;
 
-    return problems;
+    return findings;
   }
 
-  const differences = await findParityDifferences(config);
+  findings.parity = await findParityDifferences(config);
 
-  if (differences.length > 0) {
-    problems.push(formatParityDifferences(differences));
-  }
-
-  return problems;
+  return findings;
 }
 
 async function check(root: string): Promise<void> {
-  const problems = await collectProblems(root);
+  const findings = await collectFindings(root);
 
-  if (problems.length === 0) {
+  if (!hasFindings(findings)) {
     console.log("Scoped route trees are up to date.");
 
     return;
   }
 
-  console.error([...problems, FIX_HINT].join("\n"));
+  console.error(formatCheckReport(findings));
   process.exitCode = 1;
 }
 
@@ -139,20 +133,41 @@ const cli = cac(CLI_NAME);
 
 cli
   .command("init", "Write the initial scoped-route-trees config from the detected sections")
-  .option("--root <dir>", "Project root", { default: process.cwd() })
+  .option("--root <dir>", "Project root (default: current directory)")
   .action(guarded(init));
 
 cli
   .command("generate", "Generate the full route tree and one scoped tree per section")
-  .option("--root <dir>", "Project root", { default: process.cwd() })
+  .option("--root <dir>", "Project root (default: current directory)")
   .option("--check", "Exit 1 when anything is stale, uncovered or out of parity, without writing")
   .action(guarded(generate));
 
 cli.help();
 
-try {
-  cli.parse();
-} catch (error) {
+async function main(): Promise<void> {
+  cli.parse(process.argv, { run: false });
+
+  if (cli.options.help === true) {
+    return;
+  }
+
+  if (cli.matchedCommand === undefined) {
+    const [unknown] = cli.args;
+
+    if (unknown !== undefined) {
+      console.error(`Unknown command "${unknown}".\n`);
+    }
+
+    cli.outputHelp();
+    process.exitCode = 1;
+
+    return;
+  }
+
+  await cli.runMatchedCommand();
+}
+
+main().catch((error: unknown) => {
   console.error(error instanceof Error ? error.message : String(error));
   process.exitCode = 1;
-}
+});
