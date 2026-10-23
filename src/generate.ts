@@ -37,11 +37,16 @@ export class UncoveredRoutesError extends Error {
   }
 }
 
-export function appRouterConfig(root: string, config: ResolvedScopedTreesConfig): Config {
+export function appRouterConfig(
+  root: string,
+  config: ResolvedScopedTreesConfig,
+  router?: Partial<Config>,
+): Config {
   const resolveAgainstRoot = (value: string | undefined) =>
     value === undefined ? undefined : path.resolve(root, value);
 
   return resolveRouterConfig(root, {
+    inline: router,
     routesDirectory: resolveAgainstRoot(config.routesDirectory),
     generatedRouteTree: resolveAgainstRoot(config.generatedRouteTree),
   });
@@ -213,9 +218,10 @@ export async function generateScopedTrees(opts: {
   root: string;
   config: ResolvedScopedTreesConfig;
   mode: GenerateMode;
+  router?: Partial<Config>;
 }): Promise<GenerateResult> {
   const root = path.resolve(opts.root);
-  const routerConfig = appRouterConfig(root, opts.config);
+  const routerConfig = appRouterConfig(root, opts.config, opts.router);
   const outputDirectory = path.resolve(root, opts.config.outputDirectory);
 
   if (isInside(path.resolve(routerConfig.routesDirectory), outputDirectory)) {
