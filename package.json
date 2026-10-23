@@ -46,7 +46,7 @@
   },
   "peerDependencies": {
     "@tanstack/router-generator": ">=1.167.0 <2",
-    "vite": ">=5.0.0"
+    "vite": ">=5.0.0 <9"
   },
   "peerDependenciesMeta": {
     "vite": {
@@ -86,7 +86,6 @@
     "route-tree"
   ],
   "publishConfig": {
-    "access": "public",
-    "provenance": true
+    "access": "public"
   }
 }
