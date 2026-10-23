@@ -20,7 +20,24 @@ jobs:
       - run: npx vitest run src/test/parity.test.ts
 ```
 
-Adjust the last line to wherever your parity test lives. It is the test from the [README](../README.md#parity-test).
+Adjust the last line to wherever your parity test lives. It is the test from the [README](../README.md#parity-test):
+
+```ts
+it("keeps every scoped tree in parity with the full route tree", async () => {
+  expect(formatParityDifferences(await checkScopedRouteTrees())).toBe("");
+}, 60_000);
+```
+
+It runs one TanStack crawl per section, so it needs a longer timeout than Vitest's default 5 seconds. Raise it further on a large app with many sections.
+
+## Formatters
+
+Add the output directory (default `src/test/route-trees`) to `.prettierignore`, next to `routeTree.gen.ts`, and to any other tool that rewrites files in CI or on commit. A formatted tree no longer matches a fresh generation, so `generate --check` reports it as out of date.
+
+```text
+src/routeTree.gen.ts
+src/test/route-trees
+```
 
 ## What `generate --check` does
 
