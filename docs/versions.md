@@ -4,7 +4,7 @@
 | ---------------------------- | --------------- | ------------------------------------------------------------------------------ |
 | Node                         | `>=22.12`       | Node 20 is end of life.                                                        |
 | `@tanstack/router-generator` | `>=1.167.0 <2`  | Peer dependency. Pin it to the version your `@tanstack/router-plugin` uses.    |
-| Vite                         | `>=5`           | Optional peer. Only needed for the `tanstack-router-scoped-trees/vite` plugin. |
+| Vite                         | `>=5 <9`        | Optional peer. Only needed for the `tanstack-router-scoped-trees/vite` plugin. |
 
 ## One generator version
 
