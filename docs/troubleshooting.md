@@ -2,7 +2,7 @@
 
 ## Reading parity output
 
-Each line starts with the section name. Parity re-derives each section from only its own files through TanStack and compares the result with the section tree built in memory from your route files, byte for byte. It never reads the committed trees; use `generate --check` for that. It costs one extra TanStack crawl per section.
+Most lines start with the section name. The "is in no section" line starts with the route file instead. Parity re-derives each section from only its own files through TanStack and compares the result with the section tree built in memory from your route files, byte for byte. It never reads the committed trees; use `generate --check` for that. It costs one extra TanStack crawl per section.
 
 | Line                                                                    | Meaning                                                                                 |
 | ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |

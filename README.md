@@ -114,7 +114,6 @@ it("keeps every scoped tree in parity with the full route tree", async () => {
 
 1. Apps that set `virtualRouteConfig` (the tool stops with a message).
 2. Code-based routing. Only file-based routes.
-3. `"/"` as a section prefix. It would match every route, so it is rejected.
 
 ## Guides
 
