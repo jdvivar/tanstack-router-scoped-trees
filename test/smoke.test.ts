@@ -1,5 +1,12 @@
 import { expect, it } from "vitest";
 
-it("resolves the package entry", async () => {
-  await expect(import("../src/index.js")).resolves.toBeDefined();
+it("exports only the documented surface", async () => {
+  const entry = await import("../src/index.js");
+
+  expect(Object.keys(entry).sort()).toEqual([
+    "ConfigError",
+    "checkScopedRouteTrees",
+    "defineConfig",
+    "formatParityDifferences",
+  ]);
 });
