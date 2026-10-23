@@ -45,19 +45,24 @@ generator_versions() {
 
 cd "$app_dir"
 
-# router-plugin 1.168.46 pins router-generator 1.167.44, and npm installs a newer
-# generator for the package's peer when it is not a direct dependency.
-npm install --no-audit --no-fund "$package_tarball" @tanstack/router-plugin@1.168.46
+pinned_generator() {
+  node -p 'require("@tanstack/router-plugin/package.json").dependencies["@tanstack/router-generator"]'
+}
+
+# router-plugin pins one router-generator version, and npm installs a newer generator
+# for this package's peer when the app has no direct dependency on it.
+npm install --no-audit --no-fund "$package_tarball" \
+  "@tanstack/router-plugin@${MISMATCH_ROUTER_PLUGIN_VERSION:-1.168.46}"
 
 if npx tanstack-router-scoped-trees generate 2> mismatch.log; then
   echo "expected generate to fail with two router-generator versions installed" >&2
   exit 1
 fi
 
-grep -F "npm i -D @tanstack/router-generator@1.167.44" mismatch.log
+grep -F "npm i -D @tanstack/router-generator@$(pinned_generator)" mismatch.log
 
 npm install --no-audit --no-fund -D "@tanstack/router-plugin@${ROUTER_PLUGIN_VERSION:-latest}"
-plugin_generator="$(node -p 'require("@tanstack/router-plugin/package.json").dependencies["@tanstack/router-generator"]')"
+plugin_generator="$(pinned_generator)"
 npm install --no-audit --no-fund -D "@tanstack/router-generator@$plugin_generator"
 
 if [ "$(generator_versions)" != "$plugin_generator" ]; then
