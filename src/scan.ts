@@ -31,6 +31,7 @@ export type RouteCrawl = {
   crawl: CrawlingResult;
   routes: ScannedRoute[];
   generatedTree: string;
+  droppedRouteFiles: string[];
 };
 
 function toPosix(filePath: string): string {
@@ -82,7 +83,12 @@ export function scannedRoutesFrom(acc: HandleNodeAccumulator): ScannedRoute[] {
 
 export async function crawlRoutes(config: Config, root: string): Promise<RouteCrawl> {
   const tmpDir = await mkdtemp(path.join(tmpdir(), "scoped-trees-generator-"));
-  const { fs, output } = inMemoryOutputFs(config.routesDirectory, config.generatedRouteTree);
+  const droppedRouteFiles: string[] = [];
+  const { fs, output } = inMemoryOutputFs(
+    config.routesDirectory,
+    config.generatedRouteTree,
+    (file) => droppedRouteFiles.push(file),
+  );
   const generator = new Generator({ config: { ...config, tmpDir }, root, fs });
 
   try {
@@ -98,7 +104,13 @@ export async function crawlRoutes(config: Config, root: string): Promise<RouteCr
     throw new Error("TanStack's generator finished without producing a route tree.");
   }
 
-  return { generator, crawl, routes: scannedRoutesFrom(crawl.acc), generatedTree };
+  return {
+    generator,
+    crawl,
+    routes: scannedRoutesFrom(crawl.acc),
+    generatedTree,
+    droppedRouteFiles,
+  };
 }
 
 export async function scanRoutes(

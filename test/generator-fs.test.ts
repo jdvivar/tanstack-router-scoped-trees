@@ -30,6 +30,17 @@ describe("readOnlyRoutesFs", () => {
     await expect(stat(staged)).rejects.toThrow();
   });
 
+  it("reports each dropped rename into the routes directory", async () => {
+    const dropped: string[] = [];
+    const fs = readOnlyRoutesFs(routesDirectory, (file) => dropped.push(file));
+    const staged = path.join(root, "staged");
+
+    await fs.writeFile(staged, "rewritten");
+    await fs.rename(staged, path.join(routesDirectory, "about.tsx"));
+
+    expect(dropped).toEqual([path.join(routesDirectory, "about.tsx")]);
+  });
+
   it("lets renames outside the routes directory through", async () => {
     const fs = readOnlyRoutesFs(routesDirectory);
     const staged = path.join(root, "staged");
@@ -56,13 +67,19 @@ describe("inMemoryOutputFs", () => {
     await expect(stat(outputPath)).rejects.toThrow();
   });
 
-  it("never writes into the routes directory", async () => {
-    const { fs } = inMemoryOutputFs(routesDirectory, path.join(root, "src/routeTree.gen.ts"));
+  it("never writes into the routes directory, and reports what it dropped", async () => {
+    const dropped: string[] = [];
+    const { fs } = inMemoryOutputFs(
+      routesDirectory,
+      path.join(root, "src/routeTree.gen.ts"),
+      (file) => dropped.push(file),
+    );
     const staged = path.join(root, "staged");
 
     await fs.writeFile(staged, "rewritten");
     await fs.rename(staged, path.join(routesDirectory, "about.tsx"));
 
     expect(await readFile(path.join(routesDirectory, "about.tsx"), "utf8")).toBe("original");
+    expect(dropped).toEqual([path.join(routesDirectory, "about.tsx")]);
   });
 });

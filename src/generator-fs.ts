@@ -14,6 +14,12 @@ export type GeneratorFs = {
   chown: (filePath: string, uid: number, gid: number) => Promise<void>;
 };
 
+export type OnDroppedWrite = (filePath: string) => void;
+
+export function formatSkippedRouteUpdate(root: string, filePath: string): string {
+  return `${path.relative(root, filePath)} was not changed. TanStack wanted to update this file; start the dev server or run \`tsr generate\`.`;
+}
+
 function isInside(directory: string, filePath: string): boolean {
   return path.resolve(filePath).startsWith(path.resolve(directory) + path.sep);
 }
@@ -44,11 +50,15 @@ async function diskReadFile(filePath: string): ReturnType<GeneratorFs["readFile"
   }
 }
 
-export function readOnlyRoutesFs(routesDirectory: string): GeneratorFs {
+export function readOnlyRoutesFs(
+  routesDirectory: string,
+  onDropped: OnDroppedWrite = () => {},
+): GeneratorFs {
   return {
     rename: async (oldPath, newPath) => {
       if (isInside(routesDirectory, newPath)) {
         await rm(oldPath, { force: true });
+        onDropped(path.resolve(newPath));
 
         return;
       }
@@ -68,6 +78,7 @@ const MEMORY_STAT: FileStat = { mtimeMs: 0n, mode: 0o644, uid: 0, gid: 0 };
 export function inMemoryOutputFs(
   routesDirectory: string,
   outputPath: string,
+  onDropped: OnDroppedWrite = () => {},
 ): { fs: GeneratorFs; output: () => string | undefined } {
   const staged = new Map<string, string>();
   const target = path.resolve(outputPath);
@@ -93,6 +104,8 @@ export function inMemoryOutputFs(
       }
 
       if (isInside(routesDirectory, newPath)) {
+        onDropped(path.resolve(newPath));
+
         return;
       }
 

@@ -20,6 +20,7 @@ export type GenerateResult = {
   changed: string[];
   stale: string[];
   uncovered: ScannedRoute[];
+  droppedRouteFiles: string[];
 };
 
 type GenerateMode = "write" | "check";
@@ -194,9 +195,10 @@ async function writeTrees(
 export async function generateFullTree(opts: {
   root: string;
   config: ResolvedScopedTreesConfig;
-}): Promise<void> {
+}): Promise<{ droppedRouteFiles: string[] }> {
   const root = path.resolve(opts.root);
   const config = appRouterConfig(root, opts.config);
+  const droppedRouteFiles: string[] = [];
   const outputDirectory = path.dirname(path.resolve(root, config.generatedRouteTree));
 
   await mkdir(outputDirectory, { recursive: true });
@@ -207,11 +209,13 @@ export async function generateFullTree(opts: {
     await new Generator({
       config: { ...config, tmpDir },
       root,
-      fs: readOnlyRoutesFs(config.routesDirectory),
+      fs: readOnlyRoutesFs(config.routesDirectory, (file) => droppedRouteFiles.push(file)),
     }).run();
   } finally {
     await rm(tmpDir, { recursive: true, force: true });
   }
+
+  return { droppedRouteFiles };
 }
 
 export async function generateScopedTrees(opts: {
@@ -257,7 +261,13 @@ export async function generateScopedTrees(opts: {
     await writeTrees(outputDirectory, files, changed, stale);
   }
 
-  return { sections: Object.keys(sections), changed, stale, uncovered };
+  return {
+    sections: Object.keys(sections),
+    changed,
+    stale,
+    uncovered,
+    droppedRouteFiles: crawl.droppedRouteFiles,
+  };
 }
 
 export async function isFullTreeStale(opts: {

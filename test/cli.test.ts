@@ -223,6 +223,25 @@ describe("generate", () => {
   });
 });
 
+describe("a route file TanStack wants to rewrite", () => {
+  it("is left alone and named in a warning", async () => {
+    const root = await basic();
+    const routeFile = path.join(root, "src/routes/about.tsx");
+
+    await writeFile(routeFile, routeStub("/wrong"));
+
+    const result = run(root, "generate");
+
+    expect(result.status).toBe(0);
+    expect(await readFile(routeFile, "utf8")).toBe(routeStub("/wrong"));
+    expect(result.stderr).toContain(path.join("src", "routes", "about.tsx"));
+    expect(result.stderr).toContain(
+      "TanStack wanted to update this file; start the dev server or run `tsr generate`",
+    );
+    expect(result.stderr.match(/about\.tsx/g)).toHaveLength(1);
+  });
+});
+
 describe("an app with only the root index", () => {
   it.each(["init", "generate"])(
     "%s writes no config and explains when one appears",
