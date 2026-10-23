@@ -254,3 +254,14 @@ export async function generateScopedTrees(opts: {
 
   return { sections: Object.keys(sections), changed, stale, uncovered };
 }
+
+export async function isFullTreeStale(opts: {
+  root: string;
+  config: ResolvedScopedTreesConfig;
+}): Promise<boolean> {
+  const root = path.resolve(opts.root);
+  const config = appRouterConfig(root, opts.config);
+  const { generatedTree } = await crawlRoutes(config, root);
+
+  return (await readIfExists(path.resolve(root, config.generatedRouteTree))) !== generatedTree;
+}

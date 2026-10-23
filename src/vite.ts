@@ -1,11 +1,10 @@
 import path from "node:path";
 import type { Config } from "@tanstack/router-generator";
 import type { Plugin } from "vite";
-import { CONFIG_FILE_NAME, loadConfig, writeInitialConfig } from "./config.js";
+import { CONFIG_FILE_NAME, loadConfig } from "./config.js";
+import { ensureConfig } from "./ensure-config.js";
 import { appRouterConfig, generateScopedTrees } from "./generate.js";
 import { resolveRouterConfig } from "./router-config.js";
-import { detectSections } from "./sections.js";
-import { scanRoutes } from "./scan.js";
 
 export type ScopedRouteTreesOptions = {
   root?: string;
@@ -17,24 +16,18 @@ type PluginContext = {
   warn: (message: string) => void;
 };
 
-async function ensureConfig(
+async function ensureConfigWithNotice(
   root: string,
   router: Partial<Config> | undefined,
   context: PluginContext,
 ) {
-  const existing = await loadConfig(root);
+  const { config, createdFile } = await ensureConfig(root, router);
 
-  if (existing !== undefined) {
-    return existing;
+  if (createdFile !== undefined) {
+    context.info(`Created ${CONFIG_FILE_NAME} at ${createdFile}. Review the sections it detected.`);
   }
 
-  const routerConfig = resolveRouterConfig(root, { inline: router });
-  const { routes } = await scanRoutes({ ...routerConfig, disableTypes: true }, root);
-  const configFile = await writeInitialConfig(root, detectSections(routes));
-
-  context.info(`Created ${CONFIG_FILE_NAME} at ${configFile}. Review the sections it detected.`);
-
-  return loadConfig(root);
+  return config;
 }
 
 async function regenerate(
@@ -43,7 +36,7 @@ async function regenerate(
   context: PluginContext,
 ) {
   try {
-    const config = await ensureConfig(root, router, context);
+    const config = await ensureConfigWithNotice(root, router, context);
 
     if (config === undefined) {
       return;
