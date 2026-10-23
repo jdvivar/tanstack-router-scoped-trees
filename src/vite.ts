@@ -71,6 +71,16 @@ async function fullTreePath(root: string, router: Partial<Config> | undefined) {
   return path.resolve(appRouterConfig(root, config, router).generatedRouteTree);
 }
 
+function underVitest(): boolean {
+  return Boolean(process.env.VITEST);
+}
+
+async function isWatchedFile(id: string, root: string, router: Partial<Config> | undefined) {
+  const file = path.resolve(id);
+
+  return file === path.join(root, CONFIG_FILE_NAME) || file === (await fullTreePath(root, router));
+}
+
 export function scopedRouteTrees(options: ScopedRouteTreesOptions = {}): Plugin {
   let root = options.root === undefined ? undefined : path.resolve(options.root);
 
@@ -83,11 +93,19 @@ export function scopedRouteTrees(options: ScopedRouteTreesOptions = {}): Plugin 
       root ??= resolved.root;
     },
     async buildStart() {
+      if (underVitest()) {
+        return;
+      }
+
       await regenerate(rootOrCwd(), options.router, this);
     },
     async watchChange(id) {
+      if (underVitest()) {
+        return;
+      }
+
       try {
-        if (path.resolve(id) !== (await fullTreePath(rootOrCwd(), options.router))) {
+        if (!(await isWatchedFile(id, rootOrCwd(), options.router))) {
           return;
         }
       } catch (error) {

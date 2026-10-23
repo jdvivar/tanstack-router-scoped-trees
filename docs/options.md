@@ -42,7 +42,9 @@ scopedRouteTrees({ root: "./", router: { routesDirectory: "./src/pages" } });
 | `root`   | the Vite project root | Project root. A relative value resolves against the process cwd.         |
 | `router` | none                  | Inline TanStack Router options, used when you have no `tsr.config.json`. |
 
-The plugin runs in `serve` mode only, so a production build never writes files.
+The plugin runs in `serve` mode only, so a production build never writes files. It also does nothing when `VITEST` is set, so a `vite.config.ts` shared with Vitest does not crawl routes or rewrite trees on every test run. Tests and CI see the committed trees; `generate --check` catches stale ones.
+
+It regenerates when the full route tree changes and when `scoped-route-trees.config.ts` changes.
 
 ## Where routing options come from
 

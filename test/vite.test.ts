@@ -1,7 +1,7 @@
 import { cp, mkdir, readdir, rm, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import path from "node:path";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CONFIG_FILE_NAME } from "../src/config.js";
 import { scopedRouteTrees } from "../src/vite.js";
 import { copyFixture, fakeRouterPlugin } from "./helpers/fixture.js";
@@ -9,7 +9,13 @@ import { copyFixture, fakeRouterPlugin } from "./helpers/fixture.js";
 const OUTPUT_DIRECTORY = "src/test/route-trees";
 const copies: string[] = [];
 
+beforeEach(() => {
+  vi.stubEnv("VITEST", undefined);
+});
+
 afterEach(async () => {
+  vi.unstubAllEnvs();
+
   await Promise.all(copies.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
 });
 
@@ -86,6 +92,45 @@ describe("scopedRouteTrees", () => {
 
     await plugin.watchChange.call(context, fullTree);
     expect(await listOutput(root)).toContain("billing.gen.js");
+  });
+
+  it("does nothing under Vitest", async () => {
+    const root = await copy("basic");
+    const context = stubContext();
+    const plugin = hooksOf(scopedRouteTrees({ root }));
+
+    vi.stubEnv("VITEST", "true");
+    await plugin.buildStart.call(context);
+    await plugin.watchChange.call(context, path.join(root, "src/routeTree.gen.ts"));
+
+    expect(existsSync(path.join(root, CONFIG_FILE_NAME))).toBe(false);
+    expect(existsSync(path.join(root, OUTPUT_DIRECTORY))).toBe(false);
+  });
+
+  it("regenerates when the scoped-route-trees config changes", async () => {
+    const root = await copy("basic");
+    const context = stubContext();
+    const plugin = hooksOf(scopedRouteTrees({ root }));
+    const configFile = path.join(root, CONFIG_FILE_NAME);
+
+    await writeFile(
+      configFile,
+      `export default { sections: { everything: ["/billing", "/settings", "/about"] } };\n`,
+    );
+    await plugin.buildStart.call(context);
+    await writeFile(
+      configFile,
+      `export default { sections: { billing: ["/billing"], rest: ["/settings", "/about"] } };\n`,
+    );
+    await plugin.watchChange.call(context, configFile);
+
+    expect(context.warn).not.toHaveBeenCalled();
+    expect(await listOutput(root)).toEqual([
+      "billing.gen.d.ts",
+      "billing.gen.js",
+      "rest.gen.d.ts",
+      "rest.gen.js",
+    ]);
   });
 
   it("warns with the uncovered-routes message instead of throwing", async () => {
