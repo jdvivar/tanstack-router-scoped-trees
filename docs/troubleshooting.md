@@ -29,6 +29,10 @@ If you edited only `scoped-route-trees.config.ts`, the dev server does not notic
 
 `outputDirectory` is owned by this tool. Stale `*.gen.js` and `*.gen.d.ts` files there are removed. Use a folder that holds nothing else generated.
 
+## "Two versions of @tanstack/router-generator are installed"
+
+`@tanstack/router-plugin` uses one generator version and this package found another. Install the version the message names as a devDependency, then check that `npm ls @tanstack/router-generator` shows one version. See [versions](versions.md#one-generator-version).
+
 ## "sets virtualRouteConfig"
 
 Apps whose routing uses `virtualRouteConfig` are not supported in v1. The tool stops with a message. File-based routing only.

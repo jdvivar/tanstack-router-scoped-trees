@@ -7,7 +7,7 @@ import {
   findParityDifferences,
   formatParityDifferences,
 } from "../src/parity.js";
-import { copyFixture, fixturePath } from "./helpers/fixture.js";
+import { copyFixture, fakeRouterPlugin, fixturePath } from "./helpers/fixture.js";
 
 const mapping = vi.hoisted(() => ({ dropBillingLayout: false, dropPiecesOf: "" }));
 
@@ -129,6 +129,22 @@ describe("checkScopedRouteTrees", () => {
     const router = { routesDirectory: "./src/pages", generatedRouteTree: "./src/pages.gen.ts" };
 
     expect(await checkScopedRouteTrees({ root, router })).toEqual([]);
+  });
+
+  it("reports a second generator copy, naming both versions and the fix", async () => {
+    const root = await copy("basic");
+
+    await writeConfig(root, basicSections);
+    await fakeRouterPlugin(root, "1.0.0-test");
+
+    const differences = await checkScopedRouteTrees({ root });
+
+    expect(differences).toEqual([
+      expect.objectContaining({ field: "generator", expected: "1.0.0-test" }),
+    ]);
+    expect(formatParityDifferences(differences)).toContain(
+      "npm i -D @tanstack/router-generator@1.0.0-test",
+    );
   });
 
   it("throws a ConfigError telling how to create a config when there is none", async () => {

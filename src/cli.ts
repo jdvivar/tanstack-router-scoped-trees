@@ -11,6 +11,7 @@ import {
   isFullTreeStale,
   UncoveredRoutesError,
 } from "./generate.js";
+import { assertSingleGenerator } from "./generator-versions.js";
 import { findParityDifferences } from "./parity.js";
 import { resolveRouterConfig } from "./router-config.js";
 import { scanRoutes } from "./scan.js";
@@ -24,6 +25,9 @@ function resolveRoot(options: CommandOptions): string {
 
 async function init(options: CommandOptions): Promise<void> {
   const root = resolveRoot(options);
+
+  assertSingleGenerator(root);
+
   const routerConfig = resolveRouterConfig(root);
   const { routes } = await scanRoutes({ ...routerConfig, disableTypes: true }, root);
   const configFile = await writeInitialConfig(root, detectSections(routes));
@@ -108,6 +112,8 @@ async function check(root: string): Promise<void> {
 
 async function generate(options: CommandOptions): Promise<void> {
   const root = resolveRoot(options);
+
+  assertSingleGenerator(root);
 
   if (options.check === true) {
     await check(root);

@@ -9,6 +9,7 @@ import {
   type ResolvedScopedTreesConfig,
 } from "./config.js";
 import { appRouterConfig } from "./generate.js";
+import { findGeneratorMismatch, formatGeneratorMismatch } from "./generator-versions.js";
 import { crawlRoutes, type RouteCrawl, type ScannedRoute } from "./scan.js";
 import { buildSectionTree } from "./section-tree.js";
 import {
@@ -23,7 +24,7 @@ type ComparedField = "routeId" | "fullPath" | "path" | "parent" | "fsRouteType" 
 export type ParityDifference = {
   section: string;
   filePath: string;
-  field: "missing" | "extra" | "uncovered" | "tree" | ComparedField;
+  field: "generator" | "missing" | "extra" | "uncovered" | "tree" | ComparedField;
   expected?: string | null;
   actual?: string | null;
 };
@@ -153,6 +154,20 @@ export async function findParityDifferences(
   router?: Partial<Config>,
 ): Promise<ParityDifference[]> {
   const root = path.resolve(config.root);
+  const mismatch = findGeneratorMismatch(root);
+
+  if (mismatch !== undefined) {
+    return [
+      {
+        section: "",
+        filePath: "",
+        field: "generator",
+        expected: mismatch.plugin,
+        actual: mismatch.ours,
+      },
+    ];
+  }
+
   const routerConfig = {
     ...appRouterConfig(root, config, router),
     importRoutesUsingAbsolutePaths: false,
@@ -202,6 +217,8 @@ function formatDifference(difference: ParityDifference): string {
   const { section, filePath, field } = difference;
 
   switch (field) {
+    case "generator":
+      return formatGeneratorMismatch(difference.actual ?? "", difference.expected ?? "");
     case "uncovered":
       return `${filePath} (${difference.actual}) is in no section`;
     case "tree":
