@@ -29,7 +29,7 @@ export default defineConfig({
 
 `outputDirectory` must be dedicated to these trees. Stale `*.gen.js` and `*.gen.d.ts` files in it are pruned, so do not point it at a folder with other generated files. It must not be inside your routes directory.
 
-Prefixes must start with `/`. A prefix of `/` is not valid, because it would match every route.
+Prefixes and common routes must start with `/`. A prefix of `/` is not valid, because it would match every route. Unknown keys are rejected, so a misspelled field fails instead of being ignored.
 
 ## Vite plugin options
 

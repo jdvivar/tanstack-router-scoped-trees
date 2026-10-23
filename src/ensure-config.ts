@@ -1,5 +1,12 @@
+import path from "node:path";
 import type { Config } from "@tanstack/router-generator";
-import { loadConfig, writeInitialConfig, type ResolvedScopedTreesConfig } from "./config.js";
+import {
+  CONFIG_FILE_NAME,
+  ConfigError,
+  loadConfig,
+  writeInitialConfig,
+  type ResolvedScopedTreesConfig,
+} from "./config.js";
 import { resolveRouterConfig } from "./router-config.js";
 import { scanRoutes } from "./scan.js";
 import { detectSections } from "./sections.js";
@@ -9,6 +16,39 @@ export type EnsuredConfig = {
   createdFile: string | undefined;
 };
 
+export class NoSectionsDetectedError extends ConfigError {
+  constructor(routesDirectory: string, configFile: string) {
+    super(
+      [
+        `No sections detected: ${routesDirectory} has no routes besides "/".`,
+        `${CONFIG_FILE_NAME} is created once routes beyond "/" exist. To write it by hand, create ${configFile} with:`,
+        ``,
+        `  import { defineConfig } from "tanstack-router-scoped-trees";`,
+        ``,
+        `  export default defineConfig({`,
+        `    sections: { billing: ["/billing"] },`,
+        `  });`,
+      ].join("\n"),
+    );
+    this.name = "NoSectionsDetectedError";
+  }
+}
+
+export async function writeDetectedConfig(root: string, router?: Partial<Config>): Promise<string> {
+  const routerConfig = resolveRouterConfig(root, { inline: router });
+  const { routes } = await scanRoutes({ ...routerConfig, disableTypes: true }, root);
+  const sections = detectSections(routes);
+
+  if (Object.keys(sections).length === 0) {
+    throw new NoSectionsDetectedError(
+      routerConfig.routesDirectory,
+      path.join(path.resolve(root), CONFIG_FILE_NAME),
+    );
+  }
+
+  return writeInitialConfig(root, sections);
+}
+
 export async function ensureConfig(root: string, router?: Partial<Config>): Promise<EnsuredConfig> {
   const existing = await loadConfig(root);
 
@@ -16,9 +56,7 @@ export async function ensureConfig(root: string, router?: Partial<Config>): Prom
     return { config: existing, createdFile: undefined };
   }
 
-  const routerConfig = resolveRouterConfig(root, { inline: router });
-  const { routes } = await scanRoutes({ ...routerConfig, disableTypes: true }, root);
-  const createdFile = await writeInitialConfig(root, detectSections(routes));
+  const createdFile = await writeDetectedConfig(root, router);
 
   return { config: await loadConfig(root), createdFile };
 }

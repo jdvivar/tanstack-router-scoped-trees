@@ -15,7 +15,7 @@ export default defineConfig({
 
 1. `"/billing"` matches `/billing` and `/billing/invoices`. It does not match `/billing-admin`, and `"/bill"` does not match `/billing`.
 2. `"/"` is not a valid prefix.
-3. A prefix that matches no route is an error that names the section and the prefix. This catches typos such as `"/biling"`.
+3. A prefix that matches no route is an error that names the section, the prefix and the config file. This catches typos such as `"/biling"`: fix the typo, or remove the prefix if its routes were deleted. It is checked before routes in no section, so a typo is reported as a typo.
 
 ## Parents come along
 
@@ -43,6 +43,8 @@ Two sections can claim the same route. It then appears in both trees.
 If no config exists, `npx tanstack-router-scoped-trees generate` and the Vite plugin create one. Each first URL segment becomes a section, so `/billing/invoices` gives a `billing` section with the prefix `/billing`. Review the file and rename sections to taste.
 
 You can also run `init`, which only writes the config.
+
+An app whose only route is the root index (`/`) has nothing to detect, so no config is written. It is created once routes beyond `/` exist, or you can write `sections` by hand.
 
 ## Routes in no section
 

@@ -1,6 +1,7 @@
 import { readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { ConfigError } from "../src/config.js";
 import { resolveRouterConfig, UnsupportedVirtualRoutesError } from "../src/router-config.js";
 import { scanRoutes } from "../src/scan.js";
 import { copyFixture, fixturePath } from "./helpers/fixture.js";
@@ -150,6 +151,20 @@ describe("scanRoutes", () => {
       UnsupportedVirtualRoutesError,
     );
     expect(() => resolveRouterConfig(fixturePath("virtual-config"))).toThrow(/virtualRouteConfig/);
+  });
+
+  it("names the missing routes directory and how to set it", async () => {
+    const root = await copy("basic");
+
+    await rm(path.join(root, "src/routes"), { recursive: true });
+
+    const run = () => resolveRouterConfig(root);
+
+    expect(run).toThrow(ConfigError);
+    expect(run).toThrow(path.join(root, "src/routes"));
+    expect(run).toThrow("tsr.config.json");
+    expect(run).toThrow("scoped-route-trees.config.ts");
+    expect(run).toThrow("scopedRouteTrees({ router })");
   });
 
   it("never writes into the routes directory even when a createFileRoute literal is wrong", async () => {
