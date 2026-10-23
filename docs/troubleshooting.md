@@ -25,6 +25,10 @@ Symptoms: a route is missing in a test, or `generate --check` fails.
 
 The Vite plugin does nothing under Vitest, so running tests never refreshes trees. Run `generate`, or start the dev server.
 
+## "TanStack wanted to update this file"
+
+TanStack's generator rewrites some route files, for example to fix a `createFileRoute("/wrong")` path or to fill an empty file. This package never writes inside your routes directory, so it skips that change and names the file. Start the dev server or run `tsr generate` to let TanStack apply it, then commit the file.
+
 ## Files disappeared from the output directory
 
 `outputDirectory` is owned by this tool. Stale `*.gen.js` and `*.gen.d.ts` files there are removed. Use a folder that holds nothing else generated.

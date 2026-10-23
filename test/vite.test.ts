@@ -94,6 +94,22 @@ describe("scopedRouteTrees", () => {
     expect(await listOutput(root)).toContain("billing.gen.js");
   });
 
+  it("warns about a route file TanStack wanted to rewrite", async () => {
+    const root = await copy("basic");
+    const context = stubContext();
+
+    await writeFile(
+      path.join(root, "src/routes/about.tsx"),
+      `import { createFileRoute } from "@tanstack/react-router";\nexport const Route = createFileRoute("/wrong")({});\n`,
+    );
+    await hooksOf(scopedRouteTrees({ root })).buildStart.call(context);
+
+    expect(context.warn).toHaveBeenCalledWith(expect.stringContaining("about.tsx"));
+    expect(context.warn).toHaveBeenCalledWith(
+      expect.stringContaining("TanStack wanted to update this file"),
+    );
+  });
+
   it("does nothing under Vitest", async () => {
     const root = await copy("basic");
     const context = stubContext();
