@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { expect, it } from "vitest";
 import { routeTree as teamRouteTree } from "./route-trees/team.gen.js";
 
-it("renders /org/team/members from a multi-segment pathless prefix (org/team/_guard.tsx)", async () => {
+it("renders /org/team/members for the rule: multi-segment pathless prefix (org/team/_guard.tsx)", async () => {
   const router = createRouter({
     routeTree: teamRouteTree,
     history: createMemoryHistory({ initialEntries: ["/org/team/members"] }),

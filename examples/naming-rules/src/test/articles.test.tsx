@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { expect, it } from "vitest";
 import { routeTree as articlesRouteTree } from "./route-trees/articles.gen.js";
 
-it("renders /articles from a index without a parent file (articles.index.tsx)", async () => {
+it("renders /articles for the rule: index without a parent file (articles.index.tsx)", async () => {
   const router = createRouter({
     routeTree: articlesRouteTree,
     history: createMemoryHistory({ initialEntries: ["/articles"] }),
