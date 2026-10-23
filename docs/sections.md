@@ -77,4 +77,4 @@ Section selection works on the routes TanStack itself resolves, so file naming d
 
 ## Editing the config in dev
 
-The Vite plugin regenerates when the full route tree changes. Editing `scoped-route-trees.config.ts` alone does not trigger that. Run `npx tanstack-router-scoped-trees generate` or restart the dev server.
+The Vite plugin regenerates when the full route tree changes and when you save `scoped-route-trees.config.ts`. No restart is needed.
