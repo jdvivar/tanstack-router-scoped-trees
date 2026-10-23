@@ -1,7 +1,7 @@
 import { chmod, cp, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import type { ResolvedScopedTreesConfig } from "../src/config.js";
+import { ConfigError, type ResolvedScopedTreesConfig } from "../src/config.js";
 import { generateFullTree, generateScopedTrees, UncoveredRoutesError } from "../src/generate.js";
 import { resolveRouterConfig } from "../src/router-config.js";
 import { crawlRoutes } from "../src/scan.js";
@@ -218,6 +218,18 @@ describe("generateScopedTrees", () => {
     expect(error.message).toContain("Some routes are not in any section");
     expect(error.message).toContain("/about  (about.tsx)");
     expect(error.message).toContain(config.configFile);
+  });
+
+  it("reports a typo'd prefix before the routes it leaves uncovered", async () => {
+    const root = await copy("basic");
+    const config = configFor(root, { ...basicSections, billing: ["/biling"] });
+
+    const error = await generateScopedTrees({ root, config, mode: "write" }).catch((e) => e);
+
+    expect(error).toBeInstanceOf(ConfigError);
+    expect(error.message).toContain('"/biling"');
+    expect(error.message).toContain(config.configFile);
+    expect(error.message).not.toContain("not in any section");
   });
 
   it("puts uncovered routes in their own section when autoSectionUncovered is on", async () => {

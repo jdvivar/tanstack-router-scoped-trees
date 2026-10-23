@@ -30,8 +30,8 @@ const GENERATED_FILE_PATTERN = /\.gen\.(js|d\.ts)$/;
 export class UncoveredRoutesError extends Error {
   readonly uncovered: ScannedRoute[];
 
-  constructor(uncovered: ScannedRoute[], configFile: string) {
-    super(formatUncoveredError(uncovered, configFile));
+  constructor(uncovered: ScannedRoute[], configFile: string, sectionNames: string[] = []) {
+    super(formatUncoveredError(uncovered, configFile, sectionNames));
     this.name = "UncoveredRoutesError";
     this.uncovered = uncovered;
   }
@@ -232,15 +232,20 @@ export async function generateScopedTrees(opts: {
 
   const crawl = await crawlForOutput(root, routerConfig, outputDirectory);
   const { routes } = crawl;
+
+  assertPrefixesMatch(routes, opts.config, opts.config.configFile);
+
   const uncovered = findUncovered(routes, opts.config);
 
   if (uncovered.length > 0 && !opts.config.autoSectionUncovered) {
-    throw new UncoveredRoutesError(uncovered, opts.config.configFile);
+    throw new UncoveredRoutesError(
+      uncovered,
+      opts.config.configFile,
+      Object.keys(opts.config.sections),
+    );
   }
 
   const { sections } = applyAutoSections(routes, opts.config);
-
-  assertPrefixesMatch(routes, { sections });
 
   const files = await renderTrees(root, crawl, sections, opts.config.commonRoutes);
   const changed = await changedFiles(outputDirectory, files);

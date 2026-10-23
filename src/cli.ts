@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 import path from "node:path";
 import { cac } from "cac";
-import { CONFIG_FILE_NAME, ConfigError, loadConfig, writeInitialConfig } from "./config.js";
+import { CONFIG_FILE_NAME, ConfigError, loadConfig } from "./config.js";
 import { CLI_NAME, formatCheckReport, hasFindings, type CheckFindings } from "./cli-report.js";
-import { ensureConfig } from "./ensure-config.js";
+import { ensureConfig, writeDetectedConfig } from "./ensure-config.js";
 import {
   appRouterConfig,
   generateFullTree,
@@ -13,9 +13,6 @@ import {
 } from "./generate.js";
 import { assertSingleGenerator } from "./generator-versions.js";
 import { findParityDifferences } from "./parity.js";
-import { resolveRouterConfig } from "./router-config.js";
-import { scanRoutes } from "./scan.js";
-import { detectSections } from "./sections.js";
 
 type CommandOptions = { root?: string; check?: boolean };
 
@@ -28,9 +25,7 @@ async function init(options: CommandOptions): Promise<void> {
 
   assertSingleGenerator(root);
 
-  const routerConfig = resolveRouterConfig(root);
-  const { routes } = await scanRoutes({ ...routerConfig, disableTypes: true }, root);
-  const configFile = await writeInitialConfig(root, detectSections(routes));
+  const configFile = await writeDetectedConfig(root);
 
   console.log(`Created ${CONFIG_FILE_NAME} at ${configFile}. Review the sections it detected.`);
 }

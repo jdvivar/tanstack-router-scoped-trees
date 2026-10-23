@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { access, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -24,6 +25,14 @@ export const CONFIG_FILE_NAME = "scoped-route-trees.config.ts";
 export const DEFAULT_OUTPUT_DIRECTORY = "src/test/route-trees";
 
 const SECTION_NAME_PATTERN = /^[a-z0-9][a-z0-9-]*$/;
+const CONFIG_KEYS = [
+  "sections",
+  "commonRoutes",
+  "outputDirectory",
+  "autoSectionUncovered",
+  "routesDirectory",
+  "generatedRouteTree",
+];
 
 export class ConfigError extends Error {
   constructor(message: string) {
@@ -84,12 +93,38 @@ function validateSections(raw: Record<string, unknown>, configFile: string): voi
   }
 }
 
-function validateOptionalFields(raw: Record<string, unknown>, fileName: string): void {
-  const { commonRoutes, outputDirectory, autoSectionUncovered } = raw;
+function validateKeys(raw: Record<string, unknown>, fileName: string): void {
+  const unknown = Object.keys(raw).find((key) => !CONFIG_KEYS.includes(key));
 
-  if (commonRoutes !== undefined && !isStringArray(commonRoutes)) {
+  if (unknown !== undefined) {
+    throw new ConfigError(
+      `Unknown key "${unknown}" in ${fileName}. Valid keys: ${CONFIG_KEYS.join(", ")}.`,
+    );
+  }
+}
+
+function validateCommonRoutes(commonRoutes: unknown, fileName: string): void {
+  if (commonRoutes === undefined) {
+    return;
+  }
+
+  if (!isStringArray(commonRoutes)) {
     throw new ConfigError(`"commonRoutes" in ${fileName} must be an array of URL paths.`);
   }
+
+  const relative = commonRoutes.find((route) => !route.startsWith("/"));
+
+  if (relative !== undefined) {
+    throw new ConfigError(
+      `"commonRoutes" in ${fileName} has "${relative}": common routes must start with "/".`,
+    );
+  }
+}
+
+function validateOptionalFields(raw: Record<string, unknown>, fileName: string): void {
+  const { outputDirectory, autoSectionUncovered } = raw;
+
+  validateCommonRoutes(raw.commonRoutes, fileName);
 
   if (outputDirectory !== undefined && typeof outputDirectory !== "string") {
     throw new ConfigError(`"outputDirectory" in ${fileName} must be a string.`);
@@ -115,6 +150,7 @@ export function validateConfig(raw: unknown, configFile: string): ScopedTreesCon
     );
   }
 
+  validateKeys(raw, fileName);
   validateSections(raw, configFile);
   validateOptionalFields(raw, fileName);
 
@@ -145,8 +181,9 @@ export async function loadConfig(root: string): Promise<ResolvedScopedTreesConfi
     return undefined;
   }
 
+  const entryPoint = ownEntryPoint();
   const jiti = createJiti(import.meta.url, {
-    alias: { "tanstack-router-scoped-trees": ownEntryPoint() },
+    alias: existsSync(entryPoint) ? { "tanstack-router-scoped-trees": entryPoint } : {},
     moduleCache: false,
     fsCache: false,
   });
@@ -186,6 +223,8 @@ export async function writeInitialConfig(
   sections: Record<string, string[]>,
 ): Promise<string> {
   const configFile = path.join(path.resolve(root), CONFIG_FILE_NAME);
+
+  validateConfig({ sections }, configFile);
 
   if (await exists(configFile)) {
     throw new ConfigError(`${CONFIG_FILE_NAME} already exists at ${configFile}; not overwriting.`);

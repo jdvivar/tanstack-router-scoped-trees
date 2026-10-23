@@ -1,4 +1,6 @@
+import { existsSync } from "node:fs";
 import { getConfig, type Config } from "@tanstack/router-generator";
+import { CONFIG_FILE_NAME, ConfigError } from "./config.js";
 
 export class UnsupportedVirtualRoutesError extends Error {
   constructor(root: string) {
@@ -32,6 +34,12 @@ export function resolveRouterConfig(root: string, overrides: RouterConfigOverrid
 
   if (config.virtualRouteConfig !== undefined) {
     throw new UnsupportedVirtualRoutesError(root);
+  }
+
+  if (!existsSync(config.routesDirectory)) {
+    throw new ConfigError(
+      `Routes directory not found: ${config.routesDirectory}. Create it, or set "routesDirectory" to your routes folder in tsr.config.json, in ${CONFIG_FILE_NAME}, or in scopedRouteTrees({ router }) in vite.config.ts.`,
+    );
   }
 
   return config;

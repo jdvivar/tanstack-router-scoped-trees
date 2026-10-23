@@ -223,6 +223,41 @@ describe("generate", () => {
   });
 });
 
+describe("an app with only the root index", () => {
+  it.each(["init", "generate"])(
+    "%s writes no config and explains when one appears",
+    async (command) => {
+      const root = await basic();
+
+      for (const file of ["about.tsx", "settings.tsx", "settings.profile.tsx", "billing"]) {
+        await rm(path.join(root, "src/routes", file), { recursive: true });
+      }
+
+      const result = run(root, command);
+
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain('created once routes beyond "/" exist');
+      expect(result.stderr).toContain("sections:");
+      expect(await exists(path.join(root, "scoped-route-trees.config.ts"))).toBe(false);
+    },
+  );
+});
+
+describe("a missing routes directory", () => {
+  it("names the directory it looked at", async () => {
+    const root = await basic();
+
+    await rm(path.join(root, "src/routes"), { recursive: true });
+
+    const result = run(root, "generate");
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(path.join(root, "src/routes"));
+    expect(result.stderr).toContain("routesDirectory");
+    expect(result.stderr).not.toMatch(/ENOENT/);
+  });
+});
+
 describe("a second generator copy", () => {
   it.each(["init", "generate", "generate --check"])(
     "%s exits 1 naming both versions and the fix",

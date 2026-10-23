@@ -51,4 +51,7 @@ A relative `scopedRouteTrees({ root })` resolves against the process cwd, not th
 
 1. A section name with spaces or `..` is rejected. Use lowercase letters, digits and hyphens.
 2. A config with no `sections`, or an empty object, is rejected. Add sections, or delete the file and run `init`.
-3. A prefix that matches no route is rejected, with the section name and the prefix.
+3. A prefix that matches no route is rejected, with the section name, the prefix and the config file. Fix the typo, or remove the prefix if its routes were deleted.
+4. An unknown key is rejected, with the list of valid keys.
+5. "Routes directory not found" names the folder it looked at. Set `routesDirectory` in `tsr.config.json`, in `scoped-route-trees.config.ts`, or in `scopedRouteTrees({ router })`.
+6. "No sections detected" means the app has no routes besides `/`. The config is created once it does, or write `sections` by hand.

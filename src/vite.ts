@@ -2,7 +2,7 @@ import path from "node:path";
 import type { Config } from "@tanstack/router-generator";
 import type { Plugin } from "vite";
 import { CONFIG_FILE_NAME, loadConfig } from "./config.js";
-import { ensureConfig } from "./ensure-config.js";
+import { ensureConfig, NoSectionsDetectedError } from "./ensure-config.js";
 import { appRouterConfig, generateScopedTrees } from "./generate.js";
 import { findGeneratorMismatch } from "./generator-versions.js";
 import { resolveRouterConfig } from "./router-config.js";
@@ -51,6 +51,12 @@ async function regenerate(
 
     await generateScopedTrees({ root, config, mode: "write", router });
   } catch (error) {
+    if (error instanceof NoSectionsDetectedError) {
+      context.info(error.message);
+
+      return;
+    }
+
     context.warn(error instanceof Error ? error.message : String(error));
   }
 }

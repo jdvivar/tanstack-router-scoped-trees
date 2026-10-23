@@ -130,9 +130,34 @@ export function findUncovered(routes: ScannedRoute[], config: ScopedTreesConfig)
   );
 }
 
-export function formatUncoveredError(uncovered: ScannedRoute[], configFile: string): string {
-  const routeLines = uncovered.map((route) => `  ${route.fullPath}  (${route.filePath})`);
-  const snippet = Object.entries(detectSections(uncovered)).map(
+function displayPath(route: ScannedRoute): string {
+  return normalizePath(route.fullPath) || "/";
+}
+
+function suggestSections(
+  uncovered: ScannedRoute[],
+  existingNames: string[],
+): Record<string, string[]> {
+  const taken = new Set(existingNames);
+  const sections: Record<string, string[]> = {};
+
+  for (const [name, prefixes] of Object.entries(detectSections(uncovered))) {
+    const unique = uniqueName(name, taken);
+
+    taken.add(unique);
+    sections[unique] = prefixes;
+  }
+
+  return sections;
+}
+
+export function formatUncoveredError(
+  uncovered: ScannedRoute[],
+  configFile: string,
+  existingNames: string[] = [],
+): string {
+  const routeLines = uncovered.map((route) => `  ${displayPath(route)}  (${route.filePath})`);
+  const snippet = Object.entries(suggestSections(uncovered, existingNames)).map(
     ([name, prefixes]) => `    ${name}: ${JSON.stringify(prefixes)},`,
   );
 
@@ -149,14 +174,18 @@ export function formatUncoveredError(uncovered: ScannedRoute[], configFile: stri
   ].join("\n");
 }
 
-export function assertPrefixesMatch(routes: ScannedRoute[], config: ScopedTreesConfig): void {
+export function assertPrefixesMatch(
+  routes: ScannedRoute[],
+  config: ScopedTreesConfig,
+  configFile: string,
+): void {
   const candidates = urlRoutes(routes);
 
   for (const [name, prefixes] of Object.entries(config.sections)) {
     for (const prefix of prefixes) {
       if (!candidates.some((route) => matchesPrefix(route, prefix))) {
         throw new ConfigError(
-          `Section "${name}" has the prefix "${prefix}", which matches no route. Check it for typos.`,
+          `Section "${name}" has the prefix "${prefix}", which matches no route. In ${configFile}, fix the typo, or remove it if the routes were deleted.`,
         );
       }
     }
@@ -171,15 +200,7 @@ export function applyAutoSections(
     return config;
   }
 
-  const sections = { ...config.sections };
-  const taken = new Set(Object.keys(sections));
+  const uncovered = suggestSections(findUncovered(routes, config), Object.keys(config.sections));
 
-  for (const [name, prefixes] of Object.entries(detectSections(findUncovered(routes, config)))) {
-    const unique = uniqueName(name, taken);
-
-    taken.add(unique);
-    sections[unique] = prefixes;
-  }
-
-  return { ...config, sections };
+  return { ...config, sections: { ...config.sections, ...uncovered } };
 }

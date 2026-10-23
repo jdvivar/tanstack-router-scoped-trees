@@ -100,6 +100,23 @@ describe("scopedRouteTrees", () => {
     expect(context.warn.mock.calls[0]?.[0]).toContain("/settings");
   });
 
+  it("writes no config for an app with only the root index, and says why", async () => {
+    const root = await copy("basic");
+    const context = stubContext();
+
+    for (const file of ["about.tsx", "settings.tsx", "settings.profile.tsx", "billing"]) {
+      await rm(path.join(root, "src/routes", file), { recursive: true });
+    }
+
+    await hooksOf(scopedRouteTrees({ root })).buildStart.call(context);
+
+    expect(existsSync(path.join(root, CONFIG_FILE_NAME))).toBe(false);
+    expect(context.info).toHaveBeenCalledWith(
+      expect.stringContaining('created once routes beyond "/" exist'),
+    );
+    expect(context.warn).not.toHaveBeenCalled();
+  });
+
   it("warns when router-plugin uses another generator version", async () => {
     const root = await copy("basic");
     const context = stubContext();
