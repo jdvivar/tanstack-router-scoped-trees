@@ -23,7 +23,7 @@ Routes above a matched route are added automatically: the root route, layouts, a
 
 ## Common routes
 
-Some routes belong in every tree, like a page that guards redirects, for instance `/forbidden`. List them as exact paths:
+Some routes belong in every tree, such as a page that guards redirect to (`/forbidden`). List them as exact paths:
 
 ```ts
 export default defineConfig({
