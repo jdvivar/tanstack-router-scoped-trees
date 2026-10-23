@@ -42,4 +42,10 @@ npm run examples:check
 
 Merging to `main` runs the release workflow. It opens a "chore: version package" pull request from the pending changesets, and merging that pull request publishes to npm through trusted publishing. There is no npm token in the repository.
 
-The maintainer publishes the first version by hand, then adds the trusted publisher for `release.yml` on npmjs.com so the workflow can publish every version after it.
+The maintainer publishes the first version by hand:
+
+1. Run `npx changeset version`, so `package.json` says 0.1.0 instead of 0.0.0. Commit the result.
+2. Run `npm run build`, then `npm publish`.
+3. Add the trusted publisher for `release.yml` on npmjs.com, so the workflow can publish every version after it.
+
+Provenance is not set in `package.json`: trusted publishing from GitHub Actions adds it on its own, and a publish from a laptop cannot produce it.
