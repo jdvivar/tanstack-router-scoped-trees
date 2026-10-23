@@ -11,6 +11,7 @@ import {
   isFullTreeStale,
   UncoveredRoutesError,
 } from "./generate.js";
+import { formatSkippedRouteUpdate } from "./generator-fs.js";
 import { assertSingleGenerator } from "./generator-versions.js";
 import { findParityDifferences } from "./parity.js";
 
@@ -30,6 +31,12 @@ async function init(options: CommandOptions): Promise<void> {
   console.log(`Created ${CONFIG_FILE_NAME} at ${configFile}. Review the sections it detected.`);
 }
 
+function warnSkippedRouteUpdates(root: string, files: string[]): void {
+  for (const file of new Set(files)) {
+    console.warn(`Warning: ${formatSkippedRouteUpdate(root, file)}`);
+  }
+}
+
 async function write(root: string): Promise<void> {
   const { config, createdFile } = await ensureConfig(root);
 
@@ -41,9 +48,10 @@ async function write(root: string): Promise<void> {
     console.log(`Created ${CONFIG_FILE_NAME} at ${createdFile}. Review the sections it detected.`);
   }
 
-  await generateFullTree({ root, config });
-
+  const fullTree = await generateFullTree({ root, config });
   const result = await generateScopedTrees({ root, config, mode: "write" });
+
+  warnSkippedRouteUpdates(root, [...fullTree.droppedRouteFiles, ...result.droppedRouteFiles]);
 
   console.log(
     `Generated ${result.sections.length} scoped tree(s): ${result.sections.join(", ")} (${result.changed.length} file(s) changed).`,
@@ -77,6 +85,7 @@ async function collectFindings(root: string): Promise<CheckFindings> {
 
     findings.changed = result.changed;
     findings.stale = result.stale;
+    warnSkippedRouteUpdates(root, result.droppedRouteFiles);
   } catch (error) {
     if (!(error instanceof UncoveredRoutesError)) {
       throw error;
