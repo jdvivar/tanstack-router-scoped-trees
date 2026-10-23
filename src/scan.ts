@@ -5,7 +5,7 @@ import {
   Generator,
   inferFullPath,
   type Config,
-  type GeneratorPlugin,
+  type HandleNodeAccumulator,
   type RouteNode,
 } from "@tanstack/router-generator";
 import { inMemoryOutputFs } from "./generator-fs.js";
@@ -16,6 +16,21 @@ export type ScannedRoute = {
   fullPath: string;
   parentFilePath: string | null;
   fsRouteType: string;
+  cleanedPath: string;
+  companionFilePaths: string[];
+};
+
+export type CrawlingResult = {
+  rootRouteNode: RouteNode;
+  routeFileResult: RouteNode[];
+  acc: HandleNodeAccumulator;
+};
+
+export type RouteCrawl = {
+  generator: Generator;
+  crawl: CrawlingResult;
+  routes: ScannedRoute[];
+  generatedTree: string;
 };
 
 function toPosix(filePath: string): string {
@@ -40,46 +55,57 @@ function nearestParentFile(node: RouteNode): string | null {
   return toPosix(parent.filePath);
 }
 
-function toScannedRoute(node: RouteNode): ScannedRoute {
+function companions(node: RouteNode, acc: HandleNodeAccumulator): string[] {
+  const pieces = node.routePath === undefined ? undefined : acc.routePiecesByPath[node.routePath];
+
+  return Object.values(pieces ?? {})
+    .filter((piece): piece is RouteNode => piece !== undefined && piece !== node)
+    .map((piece) => toPosix(piece.filePath))
+    .sort();
+}
+
+function toScannedRoute(node: RouteNode, acc: HandleNodeAccumulator): ScannedRoute {
   return {
     filePath: toPosix(node.filePath),
     routeId: node.routePath ?? "",
     fullPath: inferFullPath(node),
     parentFilePath: nearestParentFile(node),
     fsRouteType: node._fsRouteType,
+    cleanedPath: node.cleanedPath ?? "",
+    companionFilePaths: companions(node, acc),
   };
+}
+
+export function scannedRoutesFrom(acc: HandleNodeAccumulator): ScannedRoute[] {
+  return acc.routeNodes.filter((node) => !isRoot(node)).map((node) => toScannedRoute(node, acc));
+}
+
+export async function crawlRoutes(config: Config, root: string): Promise<RouteCrawl> {
+  const tmpDir = await mkdtemp(path.join(tmpdir(), "scoped-trees-generator-"));
+  const { fs, output } = inMemoryOutputFs(config.routesDirectory, config.generatedRouteTree);
+  const generator = new Generator({ config: { ...config, tmpDir }, root, fs });
+
+  try {
+    await generator.run();
+  } finally {
+    await rm(tmpDir, { recursive: true, force: true });
+  }
+
+  const crawl = await generator.getCrawlingResult();
+  const generatedTree = output();
+
+  if (crawl === undefined || generatedTree === undefined) {
+    throw new Error("TanStack's generator finished without producing a route tree.");
+  }
+
+  return { generator, crawl, routes: scannedRoutesFrom(crawl.acc), generatedTree };
 }
 
 export async function scanRoutes(
   config: Config,
   root: string,
 ): Promise<{ routes: ScannedRoute[]; generatedTree: string }> {
-  const tmpDir = await mkdtemp(path.join(tmpdir(), "scoped-trees-generator-"));
-  const { fs, output } = inMemoryOutputFs(config.routesDirectory, config.generatedRouteTree);
-  let routes: ScannedRoute[] | undefined;
-
-  const collector: GeneratorPlugin = {
-    name: "tanstack-router-scoped-trees:collector",
-    onRouteTreeChanged: ({ routeNodes }) => {
-      routes = routeNodes.filter((node) => !isRoot(node)).map(toScannedRoute);
-    },
-  };
-
-  try {
-    await new Generator({
-      config: { ...config, tmpDir, plugins: [collector] },
-      root,
-      fs,
-    }).run();
-  } finally {
-    await rm(tmpDir, { recursive: true, force: true });
-  }
-
-  const generatedTree = output();
-
-  if (routes === undefined || generatedTree === undefined) {
-    throw new Error("TanStack's generator finished without producing a route tree.");
-  }
+  const { routes, generatedTree } = await crawlRoutes(config, root);
 
   return { routes, generatedTree };
 }

@@ -1,12 +1,11 @@
 import { chmod, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { index, layout, rootRoute, route } from "@tanstack/virtual-file-routes";
 import { afterEach, describe, expect, it } from "vitest";
 import type { ResolvedScopedTreesConfig } from "../src/config.js";
 import { generateFullTree, generateScopedTrees, UncoveredRoutesError } from "../src/generate.js";
 import { resolveRouterConfig } from "../src/router-config.js";
-import { scanRoutes } from "../src/scan.js";
-import { createSectionRouteConfig } from "../src/section-route-config.js";
+import { crawlRoutes } from "../src/scan.js";
+import { buildSectionTree } from "../src/section-tree.js";
 import { selectSection } from "../src/sections.js";
 import { copyFixture, fixturePath } from "./helpers/fixture.js";
 
@@ -75,57 +74,28 @@ const refundsRoute = [
   ``,
 ].join("\n");
 
-describe("createSectionRouteConfig", () => {
-  it("nests the selected routes by TanStack's parent, with ids relative to the parent", async () => {
-    const root = fixturePath("basic");
-    const { routes } = await scanRoutes(resolveRouterConfig(root), root);
-    const selected = selectSection(routes, ["/billing"], []);
+describe("buildSectionTree", () => {
+  it("keeps only the selected routes, with TanStack's parents and companions", async () => {
+    const root = fixturePath("naming-rules");
+    const crawl = await crawlRoutes(resolveRouterConfig(root), root);
+    const selected = selectSection(crawl.routes, ["/posts", "/reports"], []);
+    const tree = await buildSectionTree(crawl, selected);
 
-    expect(createSectionRouteConfig(routes, selected, "__root.tsx")).toEqual(
-      rootRoute("__root.tsx", [
-        route("/billing", "billing/route.tsx", [
-          route("/invoices", "billing/invoices.tsx"),
-          index("billing/index.tsx"),
-        ]),
-      ]),
-    );
-  });
-
-  it("maps pathless layouts to layout() and directories without route files to full ids", async () => {
-    const root = fixturePath("layouts");
-    const { routes } = await scanRoutes(resolveRouterConfig(root), root);
-    const selected = selectSection(routes, ["/dashboard", "/reports"], []);
-
-    expect(createSectionRouteConfig(routes, selected, "__root.tsx")).toEqual(
-      rootRoute("__root.tsx", [
-        layout("_auth", "_auth.tsx", [route("/dashboard", "_auth/dashboard.tsx")]),
-        route("/reports/summary", "reports/summary.tsx"),
-      ]),
-    );
-  });
-
-  it("keeps the URL prefix of a pathless layout under a directory without a route file", async () => {
-    const root = fixturePath("layouts");
-    const routerConfig = resolveRouterConfig(root);
-    const { routes } = await scanRoutes(routerConfig, root);
-    const selected = selectSection(routes, ["/admin"], []);
-    const virtualRouteConfig = createSectionRouteConfig(routes, selected, "__root.tsx");
-
-    expect(virtualRouteConfig).toEqual(
-      rootRoute("__root.tsx", [
-        route("/admin", [
-          layout("_guard", "admin/_guard.tsx", [route("/users", "admin/_guard/users.tsx")]),
-        ]),
-      ]),
-    );
-
-    const scoped = await scanRoutes({ ...routerConfig, virtualRouteConfig }, root);
-
-    expect(scoped.routes).toEqual(routes.filter((scanned) => selected.has(scanned.filePath)));
-    expect(scoped.routes.map(({ routeId, fullPath }) => [routeId, fullPath])).toEqual([
-      ["/admin/_guard", "/admin"],
-      ["/admin/_guard/users", "/admin/users"],
+    expect(tree.routes).toEqual(crawl.routes.filter((scanned) => selected.has(scanned.filePath)));
+    expect(tree.routes.map(({ filePath }) => filePath).sort()).toEqual([
+      "posts.index.tsx",
+      "posts.tsx",
+      "posts_.$postId.edit.tsx",
+      "reports.tsx",
     ]);
+  });
+
+  it("builds the same tree as TanStack's generator when every route is selected", async () => {
+    const root = fixturePath("naming-rules");
+    const crawl = await crawlRoutes(resolveRouterConfig(root), root);
+    const everything = new Set(crawl.routes.map(({ filePath }) => filePath));
+
+    expect((await buildSectionTree(crawl, everything)).content).toBe(crawl.generatedTree);
   });
 });
 
