@@ -332,6 +332,14 @@ describe("command line", () => {
     expect(result.stdout).toMatch(/Usage:/);
   });
 
+  it("prints the package version for --version", async () => {
+    const { version } = JSON.parse(await readFile(path.join(repoRoot, "package.json"), "utf8"));
+    const result = spawnCli("--version");
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain(version);
+  });
+
   it("prints help and exits 0 for --help", () => {
     expect(spawnCli("--help").status).toBe(0);
   });
