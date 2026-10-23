@@ -9,7 +9,7 @@ import {
 } from "../src/parity.js";
 import { copyFixture, fixturePath } from "./helpers/fixture.js";
 
-const mapping = vi.hoisted(() => ({ dropBillingLayout: false }));
+const mapping = vi.hoisted(() => ({ dropBillingLayout: false, dropPiecesOf: "" }));
 
 vi.mock("../src/sections.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../src/sections.js")>();
@@ -28,10 +28,33 @@ vi.mock("../src/sections.js", async (importOriginal) => {
   };
 });
 
+vi.mock("../src/section-tree.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../src/section-tree.js")>();
+
+  return {
+    ...actual,
+    buildSectionTree: (...[source, selected]: Parameters<typeof actual.buildSectionTree>) => {
+      if (mapping.dropPiecesOf === "") {
+        return actual.buildSectionTree(source, selected);
+      }
+
+      const routePiecesByPath = Object.fromEntries(
+        Object.entries(source.crawl.acc.routePiecesByPath).filter(
+          ([routePath]) => routePath !== mapping.dropPiecesOf,
+        ),
+      );
+      const acc = { ...source.crawl.acc, routePiecesByPath };
+
+      return actual.buildSectionTree({ ...source, crawl: { ...source.crawl, acc } }, selected);
+    },
+  };
+});
+
 const copies: string[] = [];
 
 afterEach(async () => {
   mapping.dropBillingLayout = false;
+  mapping.dropPiecesOf = "";
 
   await Promise.all(copies.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
 });
@@ -77,6 +100,8 @@ const namingRules: Array<[rule: string, prefix: string]> = [
   ["optional param (shop.{-$category}.tsx)", "/shop"],
   ["escaped dot (script[.]js.tsx)", "/script.js"],
   ["lazy companion (reports.tsx + reports.lazy.tsx)", "/reports"],
+  ["lazy-only route (lazyonly.lazy.tsx)", "/lazyonly"],
+  ["lazy companion on a pathless layout (_auth.lazy.tsx)", "/dashboard"],
   ["deprecated component piece (stats.tsx + stats.component.tsx)", "/stats"],
   ["directory with route.tsx (docs/route.tsx + docs/intro.tsx)", "/docs"],
   ["directory without route.tsx (guides/setup.tsx)", "/guides"],
@@ -153,6 +178,18 @@ describe("findParityDifferences", () => {
     });
   });
 
+  it("reports a tree difference when the section build drops an ancestor's companion", async () => {
+    mapping.dropPiecesOf = "/_auth";
+
+    const root = fixturePath("naming-rules");
+    const differences = await findParityDifferences(configFor(root, { auth: ["/dashboard"] }));
+
+    expect(differences).toContainEqual(expect.objectContaining({ section: "auth", field: "tree" }));
+    expect(differences).toContainEqual(
+      expect.objectContaining({ filePath: "_auth.tsx", field: "companions" }),
+    );
+  });
+
   it("reports uncovered routes", async () => {
     const root = fixturePath("basic");
     const differences = await findParityDifferences(configFor(root, { billing: ["/billing"] }));
@@ -178,12 +215,14 @@ describe("formatParityDifferences", () => {
         },
         { section: "billing", filePath: "billing/extra.tsx", field: "extra" },
         { section: "", filePath: "about.tsx", field: "uncovered", actual: "/about" },
+        { section: "billing", filePath: "", field: "tree" },
       ]),
     ).toBe(
       [
         'billing: billing/invoices.tsx parent: expected "billing/route.tsx", got none',
         "billing: billing/extra.tsx is in the scoped tree but not in the section",
         "about.tsx (/about) is in no section",
+        "billing: the scoped tree differs from the tree TanStack generates from the section's own files",
       ].join("\n"),
     );
   });

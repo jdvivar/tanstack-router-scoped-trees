@@ -7,6 +7,10 @@ import { inMemoryOutputFs } from "../src/generator-fs.js";
 import { resolveRouterConfig } from "../src/router-config.js";
 import { fixturePath } from "./helpers/fixture.js";
 
+function isRouteNode(value: unknown): boolean {
+  return typeof value === "object" && value !== null && "_fsRouteType" in value;
+}
+
 async function crawlNamingRules() {
   const root = fixturePath("naming-rules");
   const config = resolveRouterConfig(root);
@@ -35,6 +39,29 @@ describe("TanStack generator contract", () => {
     expect(crawl?.acc.routeNodesByPath).toBeInstanceOf(Map);
     expect(crawl?.acc.routePiecesByPath["/reports"]?.lazy?.filePath).toBe("reports.lazy.tsx");
     expect(crawl?.acc.routeNodesByPath.get("/posts/")?.parent?.filePath).toBe("posts.tsx");
+    expect(Object.keys(crawl?.acc ?? {}).sort()).toEqual([
+      "routeNodes",
+      "routeNodesByPath",
+      "routePiecesByPath",
+      "routeTree",
+    ]);
+  });
+
+  it("links route nodes to other route nodes only through parent and children", async () => {
+    const { crawl } = await crawlNamingRules();
+    const linkedKeys = new Set<string>();
+
+    for (const node of crawl?.acc.routeNodes ?? []) {
+      for (const [key, value] of Object.entries(node)) {
+        const values: unknown[] = Array.isArray(value) ? value : [value];
+
+        if (values.some(isRouteNode)) {
+          linkedKeys.add(key);
+        }
+      }
+    }
+
+    expect([...linkedKeys].sort()).toEqual(["children", "parent"]);
   });
 
   it("builds from an accumulator exactly what run() writes", async () => {

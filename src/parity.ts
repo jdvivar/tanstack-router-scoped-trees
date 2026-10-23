@@ -1,4 +1,7 @@
+import { copyFile, mkdir, mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import path from "node:path";
+import { rootPathId, type Config } from "@tanstack/router-generator";
 import {
   CONFIG_FILE_NAME,
   ConfigError,
@@ -6,7 +9,7 @@ import {
   type ResolvedScopedTreesConfig,
 } from "./config.js";
 import { appRouterConfig } from "./generate.js";
-import { crawlRoutes, type ScannedRoute } from "./scan.js";
+import { crawlRoutes, type RouteCrawl, type ScannedRoute } from "./scan.js";
 import { buildSectionTree } from "./section-tree.js";
 import {
   applyAutoSections,
@@ -20,7 +23,7 @@ type ComparedField = "routeId" | "fullPath" | "path" | "parent" | "fsRouteType" 
 export type ParityDifference = {
   section: string;
   filePath: string;
-  field: "missing" | "extra" | "uncovered" | ComparedField;
+  field: "missing" | "extra" | "uncovered" | "tree" | ComparedField;
   expected?: string | null;
   actual?: string | null;
 };
@@ -91,11 +94,65 @@ function uncoveredDifferences(
     .sort((a, b) => a.filePath.localeCompare(b.filePath));
 }
 
+function commonAncestor(directory: string, other: string): string {
+  let base = directory;
+
+  while (path.relative(base, other).startsWith("..")) {
+    base = path.dirname(base);
+  }
+
+  return base;
+}
+
+function sectionFiles(crawl: RouteCrawl, expected: ScannedRoute[]): string[] {
+  const rootPieces = Object.values(crawl.crawl.acc.routePiecesByPath[`/${rootPathId}`] ?? {});
+  const files = [
+    crawl.crawl.rootRouteNode.filePath,
+    ...rootPieces.flatMap((piece) => (piece === undefined ? [] : [piece.filePath])),
+    ...expected.flatMap((route) => [route.filePath, ...route.companionFilePaths]),
+  ];
+
+  return [...new Set(files.filter((file) => file !== ""))];
+}
+
+async function rederiveSectionTree(
+  routerConfig: Config,
+  crawl: RouteCrawl,
+  expected: ScannedRoute[],
+): Promise<string> {
+  const { routesDirectory, generatedRouteTree } = routerConfig;
+  const base = commonAncestor(routesDirectory, path.dirname(generatedRouteTree));
+  const tmpRoot = await mkdtemp(path.join(tmpdir(), "scoped-trees-parity-"));
+  const mirror = (filePath: string) => path.join(tmpRoot, path.relative(base, filePath));
+
+  try {
+    for (const file of sectionFiles(crawl, expected)) {
+      const target = path.join(mirror(routesDirectory), file);
+
+      await mkdir(path.dirname(target), { recursive: true });
+      await copyFile(path.join(routesDirectory, file), target);
+    }
+
+    const reduced = await crawlRoutes(
+      {
+        ...routerConfig,
+        routesDirectory: mirror(routesDirectory),
+        generatedRouteTree: mirror(generatedRouteTree),
+      },
+      tmpRoot,
+    );
+
+    return reduced.generatedTree;
+  } finally {
+    await rm(tmpRoot, { recursive: true, force: true });
+  }
+}
+
 export async function findParityDifferences(
   config: ResolvedScopedTreesConfig,
 ): Promise<ParityDifference[]> {
   const root = path.resolve(config.root);
-  const routerConfig = appRouterConfig(root, config);
+  const routerConfig = { ...appRouterConfig(root, config), importRoutesUsingAbsolutePaths: false };
   const crawl = await crawlRoutes(routerConfig, root);
   const { routes } = crawl;
   const { sections } = applyAutoSections(routes, config);
@@ -109,6 +166,10 @@ export async function findParityDifferences(
     const expected = routes.filter((route) => selected.has(route.filePath));
 
     differences.push(...compareSection(section, expected, scoped.routes));
+
+    if ((await rederiveSectionTree(routerConfig, crawl, expected)) !== scoped.content) {
+      differences.push({ section, filePath: "", field: "tree" });
+    }
   }
 
   return differences;
@@ -139,6 +200,8 @@ function formatDifference(difference: ParityDifference): string {
   switch (field) {
     case "uncovered":
       return `${filePath} (${difference.actual}) is in no section`;
+    case "tree":
+      return `${section}: the scoped tree differs from the tree TanStack generates from the section's own files`;
     case "missing":
       return `${section}: ${filePath} is in the section but missing from the scoped tree`;
     case "extra":
