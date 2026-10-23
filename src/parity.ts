@@ -174,10 +174,11 @@ export async function findParityDifferences(
   };
   const crawl = await crawlRoutes(routerConfig, root);
   const { routes } = crawl;
+
+  assertPrefixesMatch(routes, config, config.configFile);
+
   const { sections } = applyAutoSections(routes, config);
   const differences = uncoveredDifferences(routes, config);
-
-  assertPrefixesMatch(routes, { sections });
 
   for (const [section, prefixes] of Object.entries(sections)) {
     const selected = selectSection(routes, prefixes, config.commonRoutes);

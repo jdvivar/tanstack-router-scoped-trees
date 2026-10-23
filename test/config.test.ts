@@ -87,6 +87,23 @@ describe("validateConfig", () => {
     expect(run).toThrow('start with "/"');
   });
 
+  it("rejects an unknown key, naming it and the valid keys", () => {
+    const run = () => validateConfig({ sections: { a: ["/a"] }, comonRoutes: ["/x"] }, file);
+
+    expect(run).toThrow(ConfigError);
+    expect(run).toThrow('"comonRoutes"');
+    expect(run).toThrow("commonRoutes, outputDirectory");
+  });
+
+  it("rejects a common route that does not start with a slash", () => {
+    const run = () =>
+      validateConfig({ sections: { a: ["/a"] }, commonRoutes: ["forbidden"] }, file);
+
+    expect(run).toThrow(ConfigError);
+    expect(run).toThrow('"forbidden"');
+    expect(run).toThrow('start with "/"');
+  });
+
   it('rejects "/" as a section prefix', () => {
     const run = () => validateConfig({ sections: { everything: ["/"] } }, file);
 
@@ -105,6 +122,11 @@ describe("writeInitialConfig", () => {
 
     expect(written).toBe(path.join(root, CONFIG_FILE_NAME));
     expect(config?.sections).toEqual(sections);
+  });
+
+  it("validates the sections before writing anything", async () => {
+    await expect(writeInitialConfig(root, {})).rejects.toThrow(ConfigError);
+    await expect(loadConfig(root)).resolves.toBeUndefined();
   });
 
   it("refuses to overwrite an existing config", async () => {

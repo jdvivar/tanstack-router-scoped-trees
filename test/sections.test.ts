@@ -141,18 +141,43 @@ describe("formatUncoveredError", () => {
     expect(message).toContain('reports: ["/reports"],');
     expect(message).toContain("/app/scoped-route-trees.config.ts");
   });
+
+  it("suggests names that do not clash with existing sections", () => {
+    const message = formatUncoveredError(
+      [route("reports.tsx", "/reports")],
+      "/app/scoped-route-trees.config.ts",
+      ["reports"],
+    );
+
+    expect(message).toContain('reports-2: ["/reports"],');
+  });
+
+  it("shows index routes without the trailing slash", () => {
+    const message = formatUncoveredError(
+      [route("billing/index.tsx", "/billing/")],
+      "/app/scoped-route-trees.config.ts",
+    );
+
+    expect(message).toContain("  /billing  (billing/index.tsx)");
+  });
 });
 
 describe("assertPrefixesMatch", () => {
   it("rejects a prefix that matches no route", () => {
     const bad: ScopedTreesConfig = { sections: { billing: ["/biling"] } };
 
-    expect(() => assertPrefixesMatch(routes, bad)).toThrow(ConfigError);
-    expect(() => assertPrefixesMatch(routes, bad)).toThrow(/billing.*"\/biling"/);
+    const file = "/app/scoped-route-trees.config.ts";
+
+    expect(() => assertPrefixesMatch(routes, bad, file)).toThrow(ConfigError);
+    expect(() => assertPrefixesMatch(routes, bad, file)).toThrow(/billing.*"\/biling"/);
+    expect(() => assertPrefixesMatch(routes, bad, file)).toThrow(file);
+    expect(() => assertPrefixesMatch(routes, bad, file)).toThrow(
+      "fix the typo, or remove it if the routes were deleted",
+    );
   });
 
   it("accepts prefixes that match", () => {
-    expect(() => assertPrefixesMatch(routes, config)).not.toThrow();
+    expect(() => assertPrefixesMatch(routes, config, "/app/x.ts")).not.toThrow();
   });
 });
 
