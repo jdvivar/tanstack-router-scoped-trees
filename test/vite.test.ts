@@ -4,7 +4,7 @@ import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CONFIG_FILE_NAME } from "../src/config.js";
 import { scopedRouteTrees } from "../src/vite.js";
-import { copyFixture } from "./helpers/fixture.js";
+import { copyFixture, fakeRouterPlugin } from "./helpers/fixture.js";
 
 const OUTPUT_DIRECTORY = "src/test/route-trees";
 const copies: string[] = [];
@@ -98,6 +98,18 @@ describe("scopedRouteTrees", () => {
 
     expect(context.warn).toHaveBeenCalledTimes(1);
     expect(context.warn.mock.calls[0]?.[0]).toContain("/settings");
+  });
+
+  it("warns when router-plugin uses another generator version", async () => {
+    const root = await copy("basic");
+    const context = stubContext();
+
+    await fakeRouterPlugin(root, "1.0.0-test");
+    await hooksOf(scopedRouteTrees({ root })).buildStart.call(context);
+
+    expect(context.warn).toHaveBeenCalledWith(
+      expect.stringContaining("npm i -D @tanstack/router-generator@1.0.0-test"),
+    );
   });
 
   it("uses inline router options passed to it", async () => {

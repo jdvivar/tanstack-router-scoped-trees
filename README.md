@@ -18,7 +18,15 @@ In a local measurement (one machine, not CI) on a generated app with 1,000 route
 npm i -D tanstack-router-scoped-trees
 ```
 
-You also need `@tanstack/router-generator` (it comes with `@tanstack/router-plugin`). See [versions](docs/versions.md).
+Also add `@tanstack/router-generator` as a devDependency, at the exact version your `@tanstack/router-plugin` uses. Without it, npm can install a second, newer copy for this package, and the trees would come from a different generator than the dev server's. Find the version and pin it:
+
+```sh
+npm ls @tanstack/router-generator
+npm i -D @tanstack/router-generator@<version under @tanstack/router-plugin>
+npm ls @tanstack/router-generator
+```
+
+The last command must show one version. If it does not, the CLI stops and the Vite plugin and the parity test say which versions differ. See [versions](docs/versions.md).
 
 ## Set up in five minutes
 
