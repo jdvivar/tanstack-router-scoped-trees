@@ -4,6 +4,7 @@ import type { Plugin } from "vite";
 import { CONFIG_FILE_NAME, loadConfig } from "./config.js";
 import { ensureConfig } from "./ensure-config.js";
 import { appRouterConfig, generateScopedTrees } from "./generate.js";
+import { findGeneratorMismatch } from "./generator-versions.js";
 import { resolveRouterConfig } from "./router-config.js";
 
 export type ScopedRouteTreesOptions = {
@@ -36,6 +37,12 @@ async function regenerate(
   context: PluginContext,
 ) {
   try {
+    const mismatch = findGeneratorMismatch(root);
+
+    if (mismatch !== undefined) {
+      context.warn(mismatch.message);
+    }
+
     const config = await ensureConfigWithNotice(root, router, context);
 
     if (config === undefined) {

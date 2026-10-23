@@ -5,7 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { formatCheckReport } from "../src/cli-report.js";
-import { copyFixture } from "./helpers/fixture.js";
+import { copyFixture, fakeRouterPlugin } from "./helpers/fixture.js";
 
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
 const cli = path.join(repoRoot, "dist/cli.js");
@@ -221,6 +221,24 @@ describe("generate", () => {
     expect(result.stderr).toMatch(/npx tanstack-router-scoped-trees init/);
     expect(await snapshot(root)).toEqual(before);
   });
+});
+
+describe("a second generator copy", () => {
+  it.each(["init", "generate", "generate --check"])(
+    "%s exits 1 naming both versions and the fix",
+    async (command) => {
+      const root = await basic();
+
+      await fakeRouterPlugin(root, "1.0.0-test");
+
+      const result = run(root, ...command.split(" "));
+
+      expect(result.status).toBe(1);
+      expect(result.stderr).toMatch(/Two versions of @tanstack\/router-generator/);
+      expect(result.stderr).toContain("npm i -D @tanstack/router-generator@1.0.0-test");
+      expect(result.stderr).toContain("npm ls @tanstack/router-generator");
+    },
+  );
 });
 
 describe("parity report", () => {
