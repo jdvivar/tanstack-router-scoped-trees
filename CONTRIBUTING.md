@@ -37,3 +37,9 @@ npm run examples:check
 1. Add a test for the change.
 2. Add a changeset: `npx changeset`. Use one short line that says what changed for users.
 3. Keep commit messages to one line in conventional style, such as `fix: handle trailing slashes in prefixes`.
+
+## Releasing
+
+Merging to `main` runs the release workflow. It opens a "chore: version package" pull request from the pending changesets, and merging that pull request publishes to npm through trusted publishing. There is no npm token in the repository.
+
+The maintainer publishes the first version by hand, then adds the trusted publisher for `release.yml` on npmjs.com so the workflow can publish every version after it.
