@@ -5,7 +5,7 @@ import { routeTree as shopRouteTree } from "./route-trees/shop.gen.js";
 
 afterEach(cleanup);
 
-it("renders /shop/shoes from a optional param, present (shop.{-$category}.tsx)", async () => {
+it("renders /shop/shoes for the rule: optional param, present (shop.{-$category}.tsx)", async () => {
   const router = createRouter({
     routeTree: shopRouteTree,
     history: createMemoryHistory({ initialEntries: ["/shop/shoes"] }),
@@ -17,7 +17,7 @@ it("renders /shop/shoes from a optional param, present (shop.{-$category}.tsx)",
   expect(screen.getByRole("heading", { name: "Naming rules" })).toBeDefined();
 });
 
-it("renders /shop from a optional param, absent (shop.{-$category}.tsx)", async () => {
+it("renders /shop for the rule: optional param, absent (shop.{-$category}.tsx)", async () => {
   const router = createRouter({
     routeTree: shopRouteTree,
     history: createMemoryHistory({ initialEntries: ["/shop"] }),

@@ -5,7 +5,7 @@ import { routeTree as postsRouteTree } from "./route-trees/posts.gen.js";
 
 afterEach(cleanup);
 
-it("renders /posts from a nested index (posts.tsx + posts.index.tsx)", async () => {
+it("renders /posts for the rule: nested index (posts.tsx + posts.index.tsx)", async () => {
   const router = createRouter({
     routeTree: postsRouteTree,
     history: createMemoryHistory({ initialEntries: ["/posts"] }),
@@ -17,7 +17,7 @@ it("renders /posts from a nested index (posts.tsx + posts.index.tsx)", async () 
   expect(screen.getByRole("heading", { name: "Posts" })).toBeDefined();
 });
 
-it("renders /posts/42/edit from a non-nested route (posts_.$postId.edit.tsx)", async () => {
+it("renders /posts/42/edit for the rule: non-nested route (posts_.$postId.edit.tsx)", async () => {
   const router = createRouter({
     routeTree: postsRouteTree,
     history: createMemoryHistory({ initialEntries: ["/posts/42/edit"] }),

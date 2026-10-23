@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { expect, it } from "vitest";
 import { routeTree as docsRouteTree } from "./route-trees/docs.gen.js";
 
-it("renders /docs/intro from a directory with route.tsx (docs/route.tsx + docs/intro.tsx)", async () => {
+it("renders /docs/intro for the rule: directory with route.tsx (docs/route.tsx + docs/intro.tsx)", async () => {
   const router = createRouter({
     routeTree: docsRouteTree,
     history: createMemoryHistory({ initialEntries: ["/docs/intro"] }),

@@ -24,8 +24,8 @@ two, and prints the median of:
 | 3          |               3625 |                 2588 |                   2945 |                     1946 |
 
 Across the three invocations the scoped tree cut the process wall time by 0.8 to 1.6 s (25% to
-46%). Most of what remains in the scoped run is jsdom and Vitest startup, which a scoped tree
-does not change.
+46%). Both variants pay the same `npx` and Vitest startup inside the wall time. The
+share of the remaining scoped time that is jsdom and Vitest startup was not measured.
 
 ## Machine and versions
 
