@@ -129,13 +129,10 @@ describe("generateScopedTrees", () => {
     );
   });
 
-  it("types the trees with @tanstack/solid-router when the app depends on it", async () => {
+  it("types the trees with @tanstack/solid-router when TanStack's target is solid", async () => {
     const root = await copy("basic");
 
-    await writeFile(
-      path.join(root, "package.json"),
-      JSON.stringify({ dependencies: { "@tanstack/solid-router": "^1.0.0" } }),
-    );
+    await writeFile(path.join(root, "tsr.config.json"), JSON.stringify({ target: "solid" }));
     await generateScopedTrees({ root, config: configFor(root, basicSections), mode: "write" });
 
     expect(await readFile(outputFile(root, "billing.gen.d.ts"), "utf8")).toContain(
