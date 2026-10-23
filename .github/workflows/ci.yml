@@ -51,7 +51,8 @@ jobs:
   kitchen-sink:
     runs-on: ubuntu-latest
     env:
-      TANSTACK_ROUTER_COMMIT: 6b9fe6d29552270836c511bc9b343d73541f4424
+      # TanStack/router main on 2026-10-14: the release of router-generator 1.167.44 and router-plugin 1.168.46.
+      TANSTACK_ROUTER_COMMIT: 140efa4347859f04a9d95f8e61031196341d3d78
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
