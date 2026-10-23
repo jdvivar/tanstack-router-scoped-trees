@@ -59,7 +59,12 @@ The code below comes from [examples/basic](examples/basic).
    });
    ```
 
-3. Commit the config and the generated trees (by default in `src/test/route-trees`).
+3. Commit the config and the generated trees (by default in `src/test/route-trees`). Add that folder to `.prettierignore`, next to `routeTree.gen.ts`, and to any other formatter or linter that rewrites files. A reformatted tree no longer matches a fresh generation, so `generate --check` would fail:
+
+   ```text
+   src/routeTree.gen.ts
+   src/test/route-trees
+   ```
 
 4. In one test, swap the full tree for a scoped one:
 
@@ -103,7 +108,9 @@ npx tanstack-router-scoped-trees generate --check
 2. `generate` refreshes the full tree and every scoped tree. It also creates the config if it is missing.
 3. `generate --check` writes nothing and exits 1 if a tree is stale, a route is in no section, or parity fails. It is the check that compares committed trees with a fresh generation. Use it in CI. See [CI](docs/ci.md).
 
-All commands take `--root <dir>`. The CLI reads routing options from `tsr.config.json` only.
+All commands take `--root <dir>`, and `--version` prints the package version.
+
+The CLI reads routing options from `tsr.config.json` only. Keep every option that changes the generated output there too (`quoteStyle`, `semicolons`, `routeFileIgnorePattern` and so on). If such an option is only set inline in `tanstackRouter()`, the CLI and the dev server write different full trees and `generate --check` fails.
 
 ## Parity test
 
@@ -115,8 +122,10 @@ import { expect, it } from "vitest";
 
 it("keeps every scoped tree in parity with the full route tree", async () => {
   expect(formatParityDifferences(await checkScopedRouteTrees())).toBe("");
-});
+}, 60_000);
 ```
+
+It runs one TanStack crawl per section, so give it a longer timeout than the default.
 
 ## Not supported in v1
 
