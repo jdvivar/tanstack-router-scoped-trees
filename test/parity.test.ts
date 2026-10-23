@@ -1,4 +1,4 @@
-import { rm, writeFile } from "node:fs/promises";
+import { rename, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { ConfigError, type ResolvedScopedTreesConfig } from "../src/config.js";
@@ -118,6 +118,17 @@ describe("checkScopedRouteTrees", () => {
     await writeConfig(root, basicSections);
 
     expect(await checkScopedRouteTrees({ root })).toEqual([]);
+  });
+
+  it("accepts inline router options for routes outside the default directory", async () => {
+    const root = await copy("basic");
+
+    await rename(path.join(root, "src/routes"), path.join(root, "src/pages"));
+    await writeConfig(root, basicSections);
+
+    const router = { routesDirectory: "./src/pages", generatedRouteTree: "./src/pages.gen.ts" };
+
+    expect(await checkScopedRouteTrees({ root, router })).toEqual([]);
   });
 
   it("throws a ConfigError telling how to create a config when there is none", async () => {

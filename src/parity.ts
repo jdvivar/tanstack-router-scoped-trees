@@ -150,9 +150,13 @@ async function rederiveSectionTree(
 
 export async function findParityDifferences(
   config: ResolvedScopedTreesConfig,
+  router?: Partial<Config>,
 ): Promise<ParityDifference[]> {
   const root = path.resolve(config.root);
-  const routerConfig = { ...appRouterConfig(root, config), importRoutesUsingAbsolutePaths: false };
+  const routerConfig = {
+    ...appRouterConfig(root, config, router),
+    importRoutesUsingAbsolutePaths: false,
+  };
   const crawl = await crawlRoutes(routerConfig, root);
   const { routes } = crawl;
   const { sections } = applyAutoSections(routes, config);
@@ -176,7 +180,7 @@ export async function findParityDifferences(
 }
 
 export async function checkScopedRouteTrees(
-  opts: { root?: string } = {},
+  opts: { root?: string; router?: Partial<Config> } = {},
 ): Promise<ParityDifference[]> {
   const root = path.resolve(opts.root ?? process.cwd());
   const config = await loadConfig(root);
@@ -187,7 +191,7 @@ export async function checkScopedRouteTrees(
     );
   }
 
-  return findParityDifferences(config);
+  return findParityDifferences(config, opts.router);
 }
 
 function describeValue(value: string | null | undefined): string {
