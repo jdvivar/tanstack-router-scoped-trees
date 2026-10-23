@@ -1,0 +1,71 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npm run examples:test
+      - run: npm run examples:check
+
+  versions:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        generator: ["1.167.0", latest]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm install --no-save @tanstack/router-generator@${{ matrix.generator }}
+      - run: npm ls @tanstack/router-generator
+      - run: npx vitest run test/tanstack-contract.test.ts
+      - run: npm test
+
+  kitchen-sink:
+    runs-on: ubuntu-latest
+    env:
+      TANSTACK_ROUTER_COMMIT: 6b9fe6d29552270836c511bc9b343d73541f4424
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: TanStack/router
+          ref: ${{ env.TANSTACK_ROUTER_COMMIT }}
+          path: tanstack-router
+          sparse-checkout: examples/react/kitchen-sink-file-based/src/routes
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: echo "TARBALL=$(npm pack --pack-destination "$RUNNER_TEMP" | tail -n 1)" >> "$GITHUB_ENV"
+      - run: .github/scripts/kitchen-sink.sh "$PWD/tanstack-router/examples/react/kitchen-sink-file-based/src/routes" "$RUNNER_TEMP/$TARBALL"
