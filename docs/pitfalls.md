@@ -47,6 +47,6 @@ expect(await screen.findByTestId("invoice-table")).toBeInTheDocument();
 
 The full tree hides this by loading everything up front, so such a test can pass for years before a scoped tree exposes it. The fix is in the test, not in the tree.
 
-## Stale trees after config edits
+## Stale trees when only tests run
 
-The dev plugin regenerates when the full tree changes. Editing `scoped-route-trees.config.ts` alone does not. Run `npx tanstack-router-scoped-trees generate` or restart dev.
+The dev plugin regenerates when the full tree or `scoped-route-trees.config.ts` changes, but it does nothing under Vitest. If you change routes or the config without the dev server running, run `npx tanstack-router-scoped-trees generate` before your tests.

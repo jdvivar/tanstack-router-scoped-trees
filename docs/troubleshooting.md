@@ -23,7 +23,7 @@ Symptoms: a route is missing in a test, or `generate --check` fails.
 1. Run `npx tanstack-router-scoped-trees generate`.
 2. Commit the changed files.
 
-If you edited only `scoped-route-trees.config.ts`, the dev server does not notice. Run `generate` or restart it.
+The Vite plugin does nothing under Vitest, so running tests never refreshes trees. Run `generate`, or start the dev server.
 
 ## Files disappeared from the output directory
 
