@@ -59,18 +59,11 @@ function isInside(directory: string, candidate: string): boolean {
   return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
 }
 
-async function frameworkPackage(root: string): Promise<string> {
-  try {
-    const manifest = JSON.parse(await readFile(path.join(root, "package.json"), "utf8"));
-    const dependencies = { ...manifest.dependencies, ...manifest.devDependencies };
-
-    return "@tanstack/solid-router" in dependencies
-      ? "@tanstack/solid-router"
-      : "@tanstack/react-router";
-  } catch {
-    return "@tanstack/react-router";
-  }
-}
+const FRAMEWORK_PACKAGES: Record<Config["target"], string> = {
+  react: "@tanstack/react-router",
+  solid: "@tanstack/solid-router",
+  vue: "@tanstack/vue-router",
+};
 
 function declarationFor(framework: string): string {
   return `import type { AnyRoute } from "${framework}";\nexport declare const routeTree: AnyRoute;\n`;
@@ -144,12 +137,12 @@ async function crawlForOutput(
 }
 
 async function renderTrees(
-  root: string,
+  target: Config["target"],
   crawl: RouteCrawl,
   sections: Record<string, string[]>,
   commonRoutes: string[],
 ): Promise<Map<string, string>> {
-  const declaration = declarationFor(await frameworkPackage(root));
+  const declaration = declarationFor(FRAMEWORK_PACKAGES[target]);
   const files = new Map<string, string>();
 
   for (const [name, prefixes] of Object.entries(sections)) {
@@ -251,7 +244,7 @@ export async function generateScopedTrees(opts: {
 
   const { sections } = applyAutoSections(routes, opts.config);
 
-  const files = await renderTrees(root, crawl, sections, opts.config.commonRoutes);
+  const files = await renderTrees(routerConfig.target, crawl, sections, opts.config.commonRoutes);
   const changed = await changedFiles(outputDirectory, files);
   const stale = (await existingGeneratedFiles(outputDirectory))
     .filter((name) => !files.has(name))
