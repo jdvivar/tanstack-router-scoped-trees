@@ -1,0 +1,23 @@
+{
+  "ignorePatterns": "package-lock.json\nexamples/**/src/routeTree.gen.ts\nexamples/**/src/test/route-trees/**\nexamples/benchmark/src/routes/section-*/**\nCHANGELOG.md",
+  "rules": [
+    {
+      "id": "tanstack-reads-file-names",
+      "rule": "Never interpret route file names ourselves or edit generated route tree text. Route structure comes only from TanStack's own crawl, and trees are emitted only by TanStack's buildRouteTree.",
+      "scope": ["src/**"],
+      "severity": "high"
+    },
+    {
+      "id": "no-writes-in-routes",
+      "rule": "Nothing may write into the user's routes directory. Generator writes go through the read-only or in-memory fs adapters.",
+      "scope": ["src/**"],
+      "severity": "high"
+    },
+    {
+      "id": "actionable-errors",
+      "rule": "Every user-facing error or warning says what went wrong and how to fix it (the file, the config key, or the exact command).",
+      "scope": ["src/**"],
+      "severity": "medium"
+    }
+  ]
+}
