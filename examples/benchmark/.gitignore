@@ -1,0 +1,3 @@
+src/routes/section-*/
+src/routeTree.gen.ts
+src/test/route-trees/

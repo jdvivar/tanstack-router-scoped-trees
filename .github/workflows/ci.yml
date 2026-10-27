@@ -27,6 +27,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check
+      - run: npm run examples:test
+      - run: npm run examples:check
 
   versions:
     runs-on: ubuntu-latest
@@ -40,6 +42,7 @@ jobs:
         with:
           node-version: 24
           cache: npm
+      # Root only: the examples' router-plugin pins its own generator, which the swap below would flag as a second copy.
       - run: npm ci --workspaces=false --include-workspace-root
       - run: npm install --no-save --workspaces=false --include-workspace-root @tanstack/router-generator@${{ matrix.generator }}
       - name: Confirm the generator under test

@@ -5,6 +5,9 @@
   "license": "MIT",
   "author": "Daniel Vivar",
   "type": "module",
+  "workspaces": [
+    "examples/*"
+  ],
   "bin": {
     "tanstack-router-scoped-trees": "dist/cli.js"
   },
@@ -33,7 +36,9 @@
     "format:check": "prettier --check .",
     "format:write": "prettier --write .",
     "test": "vitest run",
-    "check": "npm run typecheck && npm run lint && npm run format:check && npm run test && npm run build"
+    "check": "npm run typecheck && npm run lint && npm run format:check && npm run test && npm run build",
+    "examples:test": "npm run test -w examples/basic -w examples/naming-rules -w examples/benchmark --if-present",
+    "examples:check": "npm run pretest -w examples/basic -w examples/naming-rules -w examples/benchmark --if-present && npm exec -w examples/basic -w examples/naming-rules -w examples/benchmark -- tanstack-router-scoped-trees generate --check"
   },
   "peerDependencies": {
     "@tanstack/router-generator": ">=1.167.0 <2",
