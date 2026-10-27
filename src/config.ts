@@ -200,10 +200,14 @@ export async function loadConfig(root: string): Promise<ResolvedScopedTreesConfi
   };
 }
 
+export function sectionKey(name: string): string {
+  return /^[a-z_$][\w$]*$/i.test(name) ? name : JSON.stringify(name);
+}
+
 function renderSections(sections: Record<string, string[]>): string {
   return Object.entries(sections)
     .map(([name, prefixes]) => {
-      const key = /^[a-z_$][\w$]*$/i.test(name) ? name : JSON.stringify(name);
+      const key = sectionKey(name);
       const list = prefixes.map((prefix) => JSON.stringify(prefix)).join(", ");
       const line = `    ${key}: [${list}],`;
 

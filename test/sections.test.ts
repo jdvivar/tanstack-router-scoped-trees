@@ -149,7 +149,16 @@ describe("formatUncoveredError", () => {
       ["reports"],
     );
 
-    expect(message).toContain('reports-2: ["/reports"],');
+    expect(message).toContain('"reports-2": ["/reports"],');
+  });
+
+  it("quotes suggested names that are not identifiers", () => {
+    const message = formatUncoveredError(
+      [route("user-admin.tsx", "/user-admin")],
+      "/app/scoped-route-trees.config.ts",
+    );
+
+    expect(message).toContain('"user-admin": ["/user-admin"],');
   });
 
   it("shows index routes without the trailing slash", () => {

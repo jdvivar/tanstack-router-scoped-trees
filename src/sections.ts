@@ -1,4 +1,4 @@
-import { ConfigError, type ScopedTreesConfig } from "./config.js";
+import { ConfigError, sectionKey, type ScopedTreesConfig } from "./config.js";
 import type { ScannedRoute } from "./scan.js";
 
 const PATHLESS_LAYOUT = "pathless_layout";
@@ -158,7 +158,7 @@ export function formatUncoveredError(
 ): string {
   const routeLines = uncovered.map((route) => `  ${displayPath(route)}  (${route.filePath})`);
   const snippet = Object.entries(suggestSections(uncovered, existingNames)).map(
-    ([name, prefixes]) => `    ${name}: ${JSON.stringify(prefixes)},`,
+    ([name, prefixes]) => `    ${sectionKey(name)}: ${JSON.stringify(prefixes)},`,
   );
 
   return [
