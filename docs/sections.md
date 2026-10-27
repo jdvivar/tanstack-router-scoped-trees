@@ -66,7 +66,7 @@ To skip this and let the tool create a section for each uncovered route, set `au
 
 ## Supported file styles
 
-Section selection works on the routes TanStack itself resolves, so file naming does not matter. The [naming-rules example](examples/naming-rules) and its test fixtures cover these styles:
+Section selection works on the routes TanStack itself resolves, so file naming does not matter. The [naming-rules example](../examples/naming-rules) and its test fixtures cover these styles:
 
 1. Flat dot routes (`a.b.c.tsx`, `posts.index.tsx`).
 2. Directory routes with `route.tsx`.
