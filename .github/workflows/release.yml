@@ -27,7 +27,7 @@ jobs:
       - run: npm run check
       - uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
         with:
-          version: npm run version
-          publish: npm run release
-          commit: "chore: version package"
-          title: "chore: version package"
+          version-script: npm run version
+          publish-script: npm run release
+          commit-message: "chore: version package"
+          pr-title: "chore: version package"
