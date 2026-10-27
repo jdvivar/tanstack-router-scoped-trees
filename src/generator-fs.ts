@@ -16,8 +16,16 @@ export type GeneratorFs = {
 
 export type OnDroppedWrite = (filePath: string) => void;
 
-export function formatSkippedRouteUpdate(root: string, filePath: string): string {
-  return `${path.relative(root, filePath)} was not changed. TanStack wanted to update this file; start the dev server or run \`tsr generate\`.`;
+const APPLY_FROM_CLI = "start the dev server or run `tsr generate`";
+export const APPLY_IN_DEV_SERVER =
+  "TanStack's router plugin applies the update, so commit the file";
+
+export function formatSkippedRouteUpdate(
+  root: string,
+  filePath: string,
+  nextStep: string = APPLY_FROM_CLI,
+): string {
+  return `${path.relative(root, filePath)} was not changed. TanStack wanted to update this file; ${nextStep}.`;
 }
 
 function isInside(directory: string, filePath: string): boolean {

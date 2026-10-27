@@ -4,7 +4,7 @@ import type { Plugin } from "vite";
 import { CONFIG_FILE_NAME, loadConfig } from "./config.js";
 import { ensureConfig, NoSectionsDetectedError } from "./ensure-config.js";
 import { appRouterConfig, generateScopedTrees } from "./generate.js";
-import { formatSkippedRouteUpdate } from "./generator-fs.js";
+import { APPLY_IN_DEV_SERVER, formatSkippedRouteUpdate } from "./generator-fs.js";
 import { findGeneratorMismatch } from "./generator-versions.js";
 import { resolveRouterConfig } from "./router-config.js";
 
@@ -53,7 +53,7 @@ async function regenerate(
     const result = await generateScopedTrees({ root, config, mode: "write", router });
 
     for (const file of result.droppedRouteFiles) {
-      context.warn(formatSkippedRouteUpdate(root, file));
+      context.warn(formatSkippedRouteUpdate(root, file, APPLY_IN_DEV_SERVER));
     }
   } catch (error) {
     if (error instanceof NoSectionsDetectedError) {
