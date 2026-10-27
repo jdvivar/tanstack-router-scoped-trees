@@ -108,6 +108,10 @@ describe("scopedRouteTrees", () => {
     expect(context.warn).toHaveBeenCalledWith(
       expect.stringContaining("TanStack wanted to update this file"),
     );
+    expect(context.warn).toHaveBeenCalledWith(
+      expect.stringContaining("TanStack's router plugin applies the update"),
+    );
+    expect(context.warn).not.toHaveBeenCalledWith(expect.stringContaining("start the dev server"));
   });
 
   it("does nothing under Vitest", async () => {
