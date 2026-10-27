@@ -1,0 +1,81 @@
+{
+  "name": "tanstack-router-scoped-trees",
+  "version": "0.0.0",
+  "description": "Generate per-section TanStack Router route trees for faster tests. A community package, not an official TanStack package.",
+  "license": "MIT",
+  "author": "Daniel Vivar",
+  "type": "module",
+  "bin": {
+    "tanstack-router-scoped-trees": "dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./vite": {
+      "types": "./dist/vite.d.ts",
+      "default": "./dist/vite.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node -e \"require('node:fs').chmodSync('dist/cli.js', 0o755)\"",
+    "typecheck": "tsc -p tsconfig.test.json --noEmit",
+    "lint": "eslint .",
+    "format:check": "prettier --check .",
+    "format:write": "prettier --write .",
+    "test": "vitest run",
+    "check": "npm run typecheck && npm run lint && npm run format:check && npm run test && npm run build"
+  },
+  "peerDependencies": {
+    "@tanstack/router-generator": ">=1.167.0 <2",
+    "vite": ">=5.0.0 <9"
+  },
+  "peerDependenciesMeta": {
+    "vite": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "cac": "^7.1.0",
+    "jiti": "^2.7.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@tanstack/router-generator": "1.167.44",
+    "@types/node": "^22.20.5",
+    "eslint": "10.12.0",
+    "prettier": "^3.9.10",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "8.71.2",
+    "vite": "8.3.4",
+    "vitest": "5.0.5"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jdvivar/tanstack-router-scoped-trees.git"
+  },
+  "homepage": "https://github.com/jdvivar/tanstack-router-scoped-trees#readme",
+  "bugs": {
+    "url": "https://github.com/jdvivar/tanstack-router-scoped-trees/issues"
+  },
+  "keywords": [
+    "tanstack",
+    "tanstack-router",
+    "vite-plugin",
+    "testing",
+    "vitest",
+    "route-tree"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}
