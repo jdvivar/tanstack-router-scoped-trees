@@ -1,0 +1,10 @@
+dist
+coverage
+node_modules
+package-lock.json
+test/fixtures
+.worktrees
+.superpowers
+examples/*/src/routeTree.gen.ts
+examples/*/src/test/route-trees
+examples/benchmark/src/routes/section-*
