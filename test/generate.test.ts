@@ -205,6 +205,25 @@ describe("generateScopedTrees", () => {
     ]);
   });
 
+  it("leaves generated files it does not own in a shared output directory", async () => {
+    const root = await copy("basic");
+    const fullTree = path.join(root, "src/routeTree.gen.js");
+    const other = path.join(root, "src/api.gen.d.ts");
+
+    await writeFile(fullTree, "export const routeTree = {};\n");
+    await writeFile(other, "export {};\n");
+
+    const result = await generateScopedTrees({
+      root,
+      config: configFor(root, basicSections, { outputDirectory: "src" }),
+      mode: "write",
+    });
+
+    expect(result.stale).toEqual([]);
+    expect(await readFile(fullTree, "utf8")).toBe("export const routeTree = {};\n");
+    expect(await readFile(other, "utf8")).toBe("export {};\n");
+  });
+
   it("fails with the uncovered-routes message when a route has no section", async () => {
     const root = await copy("basic");
     const config = configFor(root, { billing: ["/billing"], settings: ["/settings"] });

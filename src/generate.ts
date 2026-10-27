@@ -26,7 +26,8 @@ export type GenerateResult = {
 type GenerateMode = "write" | "check";
 
 const SCOPED_TREE_PLACEHOLDER = "scoped-route-tree.gen.js";
-const GENERATED_FILE_PATTERN = /\.gen\.(js|d\.ts)$/;
+const TREE_SUFFIX = ".gen.js";
+const DECLARATION_SUFFIX = ".gen.d.ts";
 
 export class UncoveredRoutesError extends Error {
   readonly uncovered: ScannedRoute[];
@@ -77,12 +78,34 @@ async function readIfExists(filePath: string): Promise<string | undefined> {
   }
 }
 
+const OWN_DECLARATIONS = new Set(Object.values(FRAMEWORK_PACKAGES).map(declarationFor));
+
+async function isOwnTree(outputDirectory: string, declarationName: string): Promise<boolean> {
+  const declaration = await readIfExists(path.join(outputDirectory, declarationName));
+
+  return declaration !== undefined && OWN_DECLARATIONS.has(declaration);
+}
+
 async function existingGeneratedFiles(outputDirectory: string): Promise<string[]> {
+  let names: string[];
+
   try {
-    return (await readdir(outputDirectory)).filter((name) => GENERATED_FILE_PATTERN.test(name));
+    names = await readdir(outputDirectory);
   } catch {
     return [];
   }
+
+  const owned: string[] = [];
+
+  for (const name of names.filter((entry) => entry.endsWith(DECLARATION_SUFFIX))) {
+    if (await isOwnTree(outputDirectory, name)) {
+      const tree = name.slice(0, -DECLARATION_SUFFIX.length) + TREE_SUFFIX;
+
+      owned.push(name, ...(names.includes(tree) ? [tree] : []));
+    }
+  }
+
+  return owned;
 }
 
 function firstMissingDirectory(directory: string): string | undefined {
@@ -149,8 +172,8 @@ async function renderTrees(
     const selected = selectSection(crawl.routes, prefixes, commonRoutes);
     const tree = await buildSectionTree(crawl, selected);
 
-    files.set(`${name}.gen.js`, tree.content);
-    files.set(`${name}.gen.d.ts`, declaration);
+    files.set(`${name}${TREE_SUFFIX}`, tree.content);
+    files.set(`${name}${DECLARATION_SUFFIX}`, declaration);
   }
 
   return files;

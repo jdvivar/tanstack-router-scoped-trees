@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { access, readdir, readFile, rm, unlink, writeFile } from "node:fs/promises";
+import { access, copyFile, readdir, readFile, rm, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
@@ -184,7 +184,10 @@ describe("generate", () => {
 
     run(root, "generate");
     await writeFile(path.join(root, "src/test/route-trees/old.gen.js"), "export {};\n");
-    await writeFile(path.join(root, "src/test/route-trees/old.gen.d.ts"), "export {};\n");
+    await copyFile(
+      path.join(root, "src/test/route-trees/billing.gen.d.ts"),
+      path.join(root, "src/test/route-trees/old.gen.d.ts"),
+    );
 
     const result = run(root, "generate", "--check");
 
