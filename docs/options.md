@@ -27,7 +27,7 @@ export default defineConfig({
 | `routesDirectory`      | `string`                   | from TanStack config     | Override the routes directory.                                                            |
 | `generatedRouteTree`   | `string`                   | from TanStack config     | Override the path of the full generated tree.                                             |
 
-`outputDirectory` must be dedicated to these trees. Stale `*.gen.js` and `*.gen.d.ts` files in it are pruned, so do not point it at a folder with other generated files. It must not be inside your routes directory.
+Trees left over from a removed section are pruned. Only trees this package wrote are touched, so other generated files in `outputDirectory` are left alone. It must not be inside your routes directory.
 
 Prefixes and common routes must start with `/`. A prefix of `/` is not valid, because it would match every route. Unknown keys are rejected, so a misspelled field fails instead of being ignored.
 
