@@ -1,6 +1,6 @@
 {
   "name": "tanstack-router-scoped-trees",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Generate per-section TanStack Router route trees for faster tests. A community package, not an official TanStack package.",
   "license": "MIT",
   "author": "Daniel Vivar",
