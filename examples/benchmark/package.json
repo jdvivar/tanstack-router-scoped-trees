@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "predev": "npm run generate",
     "dev": "vite",
     "generate": "jiti scripts/generate-routes.ts && npx tanstack-router-scoped-trees generate",
     "pretest": "npm run generate",
