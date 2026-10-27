@@ -1,0 +1,10 @@
+{
+  "files": [
+    { "path": "README.md", "description": "What the package does and the five-minute setup" },
+    {
+      "path": "docs/sections.md",
+      "description": "How sections, prefixes and uncovered routes work"
+    },
+    { "path": "docs/ci.md", "description": "What generate --check and the parity check compare" }
+  ]
+}
