@@ -1,16 +1,38 @@
 # tanstack-router-scoped-trees
 
-Generate one TanStack Router route tree per section of your app, so a route test loads only the routes it needs.
+[![npm](https://img.shields.io/npm/v/tanstack-router-scoped-trees)](https://www.npmjs.com/package/tanstack-router-scoped-trees)
+[![CI](https://github.com/jdvivar/tanstack-router-scoped-trees/actions/workflows/ci.yml/badge.svg)](https://github.com/jdvivar/tanstack-router-scoped-trees/actions/workflows/ci.yml)
+[![license](https://img.shields.io/npm/l/tanstack-router-scoped-trees)](LICENSE)
+
+A Vite plugin and CLI for TanStack Router that generates one route tree per section of your app, so your route tests load only the routes they need.
 
 This is a community package. It is not affiliated with TanStack and not an official TanStack package.
 
 ## Why
 
-TanStack Router builds one route tree for the whole app. A test for a single billing screen still imports every route in the app before it can render. On a large app that cost is paid in every test file.
+Every route test in a TanStack Router app usually starts with the same import:
 
-This package generates a smaller tree for each section you define (billing, settings, and so on). A billing test imports the billing tree and nothing else.
+```tsx
+import { routeTree } from "../routeTree.gen";
+```
 
-In a local measurement (one machine, not CI) on a generated app with 1,000 routes, a test file ran 0.8 to 1.6 s faster per process, 25% to 46% less wall time. Details and caveats are in [examples/benchmark/RESULTS.md](examples/benchmark/RESULTS.md). Your numbers depend on your app.
+That one line pulls in every route in the app. A test for one billing screen also loads settings, admin, onboarding and the rest, and every test file pays for it. On a small app nobody notices. On a big one, it adds up fast.
+
+Building a small test tree by hand is quick, but it is a second copy of your routes, and it drifts from the real ones the first time someone adds a layout or renames a file.
+
+This package gives you the small tree without the second copy. You define sections (billing, settings and so on), and it writes one tree per section:
+
+```tsx
+import { routeTree as billingRouteTree } from "./route-trees/billing.gen.js";
+```
+
+1. **Same output as TanStack.** It never patches or post-processes what TanStack generates. It hands one section's routes to TanStack's own generator, and a parity check proves the result is identical to what TanStack makes from only those files.
+2. **Nested routes keep working.** Each section brings its root and the layouts above it.
+3. **CI catches drift.** `generate --check` fails when a tree is stale or a new route is in no section, and tells you which route and what to add.
+
+On a generated app with 1,000 routes, a test file ran 0.8 to 1.6 s faster per process, 25% to 46% less wall time. That is one machine, not CI, and your numbers depend on your app. Details and caveats are in [examples/benchmark/RESULTS.md](examples/benchmark/RESULTS.md).
+
+The story behind it: [Your TanStack tests don't need the whole route tree](https://dev.to/jdvivar/your-tanstack-tests-dont-need-the-whole-route-tree-ha3).
 
 ## Install
 
