@@ -26,7 +26,7 @@ This package gives you the small tree without the second copy. You define sectio
 import { routeTree as billingRouteTree } from "./route-trees/billing.gen.js";
 ```
 
-1. **Same output as TanStack.** It never edits TanStack's generated file. It hands one section's routes to TanStack's own generator, and a parity check proves the result is identical to what TanStack makes from only those files.
+1. **Same output as TanStack.** It never patches or post-processes what TanStack generates. It hands one section's routes to TanStack's own generator, and a parity check proves the result is identical to what TanStack makes from only those files.
 2. **Nested routes keep working.** Each section brings its root and the layouts above it.
 3. **CI catches drift.** `generate --check` fails when a tree is stale or a new route is in no section, and tells you which route and what to add.
 
